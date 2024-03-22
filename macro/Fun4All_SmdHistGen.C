@@ -17,7 +17,7 @@ R__LOAD_LIBRARY(libSmdHistGen.so)
 
 void Fun4All_SmdHistGen(
                      int nEvents = 1,
-                     const char *filelist = "smd_prdfs.list",
+                     const char *infile = "/sphenix/lustre01/sphnxpro/commissioning/ZDC/junk/junk_seb14-00028671-0000.prdf",
 		     const string outname = "SmdHists.root")
 {
   // this convenience library knows all our i/o objects so you don't
@@ -28,8 +28,8 @@ void Fun4All_SmdHistGen(
   se->Verbosity(0);  // set it to 1 if you want event printouts
 
   Fun4AllInputManager *inPrdf = new Fun4AllPrdfInputManager("PRDFSMD");
-  std::cout << "Adding file list " << filelist << std::endl;
-  inPrdf->AddListFile(filelist,1);
+  std::cout << "Adding input file " << infile << std::endl;
+  inPrdf->AddFile(infile);
   se->registerInputManager(inPrdf);
 
   SmdHistGen *eval = new SmdHistGen("SmdHistGen", outname.c_str());

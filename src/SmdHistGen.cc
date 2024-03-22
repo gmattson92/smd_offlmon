@@ -120,7 +120,9 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
   if (p)
   {
     // in this for loop we get: zdc_adc and smd_adc
-    for (int c = 0; c < p->iValue(0, "CHANNELS"); c++)
+    int channels = std::min(48, p->iValue(0, "CHANNELS"));
+    /* std::cout << "Number of channels is " << channels << std::endl; */
+    for (int c = 0; c < channels; c++)
     {
       std::vector<float> resultFast = anaWaveformFast(p, c);  // fast waveform fitting
       float signalFast = resultFast.at(0);
