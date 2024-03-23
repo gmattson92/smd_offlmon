@@ -19,6 +19,7 @@
 #include <TFile.h>
 #include <TH1.h>
 #include <TH2.h>
+#include <TString.h>
 
 //____________________________________________________________________________..
 SmdHistGen::SmdHistGen(const std::string &name, const char* outname):
@@ -60,6 +61,12 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
   smd_xy_south = new TH2F("smd_xy_south", "SMD hit position south", 110, -5.5, 5.5, 119, -5.92, 5.92);
 
   WaveformProcessingFast = new CaloWaveformFitting();
+
+  // Set relative gain values
+  for (int i=0; i<16; i++) {
+    smd_north_rgain[i] = 1.0;
+    smd_south_rgain[i] = 1.0;
+  }
 
   return Fun4AllReturnCodes::EVENT_OK;
 }
@@ -155,24 +162,24 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
 
     for ( int i = 0; i < 8; i++)
     {
-      /* if ( smd_adc[i] > 8 ) {n_hor ++;} */
-      if ( smd_adc[i] > 3 ) {n_hor ++;}
+      if ( smd_adc[i] > 8 ) {n_hor ++;}
+      /* if ( smd_adc[i] > 3 ) {n_hor ++;} */
     }
     for ( int i = 0; i < 7; i++)
     {
-      /* if ( smd_adc[i + 8] > 5 ) {n_ver ++;} */
-      if ( smd_adc[i + 8] > 2 ) {n_ver ++;}
+      if ( smd_adc[i + 8] > 5 ) {n_ver ++;}
+      /* if ( smd_adc[i + 8] > 2 ) {n_ver ++;} */
     }
 
     for ( int i = 0; i < 8; i++)
     {
-      /* if ( smd_adc[i + 16] > 8 ) {s_hor++;} */
-      if ( smd_adc[i + 16] > 3 ) {s_hor++;}
+      if ( smd_adc[i + 16] > 8 ) {s_hor++;}
+      /* if ( smd_adc[i + 16] > 3 ) {s_hor++;} */
     }
     for ( int i = 0; i < 7; i++)
     {
-      /* if ( smd_adc[i + 24] > 5 ) {s_ver++;} */
-      if ( smd_adc[i + 24] > 2 ) {s_ver++;}
+      if ( smd_adc[i + 24] > 5 ) {s_ver++;}
+      /* if ( smd_adc[i + 24] > 2 ) {s_ver++;} */
     }
 
     bool fired_smd_hor_n = (n_hor  > 1);
@@ -180,12 +187,19 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
 
     bool fired_smd_hor_s = (s_hor > 1);
     bool fired_smd_ver_s = (s_ver > 1);
+    
+    // Printing for testing
+    /* for (int i=0; i<32; i++) { */
+    /*   std::cout << "smd_adc[" << i << "] = " << smd_adc[i] << std::endl; */
+    /* } */
+    /* std::cout << Form("n_hor=%d, n_ver=%d, s_hor=%d, s_ver=%d\n", n_hor, n_ver, s_hor, s_ver); */
+    /* std::cout << Form("fired_smd_hor_n=%d, fired_smd_ver_n=%d, fired_smd_hor_s=%d, fired_smd_ver_s=%d\n", fired_smd_hor_n, fired_smd_ver_n, fired_smd_hor_s, fired_smd_ver_s); */
 
     /***** for testing *****/
-    fired_smd_hor_n = 1;
-    fired_smd_ver_n = 1;
-    fired_smd_hor_s = 1;
-    fired_smd_ver_s = 1;
+    /* fired_smd_hor_n = 1; */
+    /* fired_smd_ver_n = 1; */
+    /* fired_smd_hor_s = 1; */
+    /* fired_smd_ver_s = 1; */
     //compute, if smd is overloaded
     bool smd_ovld_north = false;
     bool smd_ovld_south = false;

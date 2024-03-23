@@ -93,9 +93,9 @@ class SmdHistGen : public SubsysReco
   float smd_sum[4] = {0.0f}; 
   float smd_pos[4] = {0.0f};
 
-  float gain[32] = {1.0f};
-  float smd_south_rgain[16] = {1.0f};
-  float smd_north_rgain[16] = {1.0f};
+  float gain[32] = {0.0f};
+  float smd_south_rgain[16] = {0.0f};
+  float smd_north_rgain[16] = {0.0f};
   float overflow0[40] = {0.0f};
   float overflow1[40] = {0.0f};
 
