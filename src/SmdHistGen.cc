@@ -62,11 +62,48 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
 
   WaveformProcessingFast = new CaloWaveformFitting();
 
-  // Set relative gain values
+  // Set relative gain values to unity for now
   for (int i=0; i<16; i++) {
     smd_north_rgain[i] = 1.0;
     smd_south_rgain[i] = 1.0;
   }
+
+  // The next block will be how we read the relative gain values from a 
+  // calibrations file
+  /*
+  // read our calibrations from ZdcMonData.dat
+  const char *zdccalib = getenv("ZDCCALIB");
+  if (!zdccalib)
+  {
+    std::cout << "ZDCCALIB environment variable not set" << std::endl;
+    exit(1);
+  }
+
+  //getting gains
+  float col1, col2, col3;
+  std::string gainfile = std::string(zdccalib) + "/" + "/ZdcCalib.pmtgain";
+  std::ifstream gain_infile(gainfile);
+  
+  if (!gain_infile)
+  {
+    std::cout << gainfile << " could not be opened." ;
+    exit(1);
+  }
+
+  for (int i = 0; i < 32; i++)
+  {
+    gain_infile >> col1 >> col2 >> col3;
+    gain[i] = col1;
+  }
+
+  for (int i = 0; i < 16; i++)  // relative gains of SMD channels
+  {
+    smd_south_rgain[i] = gain[i];  // 0-7: y channels, 8-14: x channels, 15: analog sum
+    smd_north_rgain[i] = gain[i + 16];  // same as above
+  }
+
+  gain_infile.close();
+  */
 
   return Fun4AllReturnCodes::EVENT_OK;
 }
