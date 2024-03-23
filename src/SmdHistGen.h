@@ -80,8 +80,7 @@ class SmdHistGen : public SubsysReco
   TH1 *smd_ver_south = nullptr;
   TH1 *smd_sum_hor_south = nullptr;
   TH1 *smd_sum_ver_south = nullptr;
-  // smd values
-  TH2 *smd_value = nullptr;
+  // smd hit 2D positions
   TH2 *smd_xy_north = nullptr;
   TH2 *smd_xy_south = nullptr;
 
