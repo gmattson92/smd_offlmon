@@ -13,6 +13,7 @@ class TFile;
 class TTree;
 class TH1;
 class TH2;
+class TGraphErrors;
 class Packet;
 class CaloWaveformFitting;
 
@@ -66,6 +67,8 @@ class SmdHistGen : public SubsysReco
   void CompSmdPos();
   void CompSumSmd();
   void CompZdcAdc();
+  void CountLRUD();
+  void CompAsym();
   CaloWaveformFitting *WaveformProcessingFast = nullptr;
 
   double PI = 3.14159;
@@ -83,9 +86,34 @@ class SmdHistGen : public SubsysReco
   // smd hit 2D positions
   TH2 *smd_xy_north = nullptr;
   TH2 *smd_xy_south = nullptr;
+  // asymmetries
+  TGraphErrors *asymLR_north = nullptr;
+  TGraphErrors *asymUD_north = nullptr;
+  TGraphErrors *asym_north = nullptr;
+  TGraphErrors *asymLR_south = nullptr;
+  TGraphErrors *asymUD_south = nullptr;
+  TGraphErrors *asym_south = nullptr;
 
   int spinPatternBlue[120] = {0};
   int spinPatternYellow[120] = {0};
+  int blueBunchNum = 0;
+  int yellowBunchNum = 0;
+  int Nleft_north = 0;
+  int Nright_north = 0;
+  int Nup_north = 0;
+  int Ndown_north = 0;
+  int Nleft_south = 0;
+  int Nright_south = 0;
+  int Nup_south = 0;
+  int Ndown_south = 0;
+  float asym_LR_north = 0.0;
+  float asym_UD_north = 0.0;
+  float asym_LR_south = 0.0;
+  float asym_UD_south = 0.0;
+  float asym_LR_north_err = 0.0;
+  float asym_UD_north_err = 0.0;
+  float asym_LR_south_err = 0.0;
+  float asym_UD_south_err = 0.0;
 
   float smd_adc[32] = {0.0f};
   float zdc_adc[16] = {0.0f};

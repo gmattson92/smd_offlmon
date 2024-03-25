@@ -19,6 +19,7 @@
 #include <TFile.h>
 #include <TH1.h>
 #include <TH2.h>
+#include <TGraphErrors.h>
 #include <TString.h>
 
 //____________________________________________________________________________..
@@ -43,6 +44,7 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
 
   // Create output file
   outfile = new TFile(outfilename, "RECREATE");
+  outfile->cd();
 
   // Create hitograms
   // north smd
@@ -58,6 +60,19 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
   // smd values
   smd_xy_north = new TH2F("smd_xy_north", "SMD hit position north", 110, -5.5, 5.5, 119, -5.92, 5.92);
   smd_xy_south = new TH2F("smd_xy_south", "SMD hit position south", 110, -5.5, 5.5, 119, -5.92, 5.92);
+  // asymmetries
+  asymLR_north = new TGraphErrors();
+  asymLR_north->SetNameTitle("asymLR_north", "North SMD Left-Right Asymmetry;;A_{N}");
+  asymUD_north = new TGraphErrors();
+  asymUD_north->SetNameTitle("asymUD_north", "North SMD Up-Down Asymmetry;;A_{N}");
+  asym_north = new TGraphErrors();
+  asym_north->SetNameTitle("asym_north", "North SMD Asymmetries;Left-Right A_{N};Up-Down A_{N}");
+  asymLR_south = new TGraphErrors();
+  asymLR_south->SetNameTitle("asymLR_south", "South SMD Left-Right Asymmetry;;A_{N}");
+  asymUD_south = new TGraphErrors();
+  asymUD_south->SetNameTitle("asymUD_south", "South SMD Up-Down Asymmetry;;A_{N}");
+  asym_south = new TGraphErrors();
+  asym_south->SetNameTitle("asym_south", "South SMD Asymmetries;Left-Right A_{N};Up-Down A_{N}");
 
   WaveformProcessingFast = new CaloWaveformFitting();
 
@@ -103,6 +118,7 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
 
   gain_infile.close();
   */
+  // done reading gains from file
 
   return Fun4AllReturnCodes::EVENT_OK;
 }
@@ -141,6 +157,12 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
       }
       delete bluePacket;
     }
+    else // if we couldn't find the spin pattern, fill it with all spin up
+    {
+      // std::cout << "Could not find spin pattern packet for blue beam! Exiting" << std::endl;
+      // exit(1)
+      for (int i = 0; i < 120; i++) {spinPatternBlue[i] = 1;}
+    }
     Packet *yellowPacket = _event->getPacket(14903);
     if ( yellowPacket)
     {
@@ -150,6 +172,12 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
       }
       delete yellowPacket;
     }
+    else // if we couldn't find the spin pattern, fill it with all spin up
+    {
+      // std::cout << "Could not find spin pattern packet for yellow beam! Exiting" << std::endl;
+      // exit(1)
+      for (int i = 0; i < 120; i++) {spinPatternYellow[i] = 1;}
+    }
   }
 
   if (_event->getEvtType() != DATAEVENT)  /// special events where we do not read out the calorimeters
@@ -158,7 +186,13 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
       return Fun4AllReturnCodes::ABORTEVENT;
   }
 
-  int pid = 12001;
+  //
+  // Need to figure out how to get the bunch numbers for this event
+  // blueBunchNum = ???;
+  // yellowBunchNum = ???;
+  //
+
+  int pid = 12001; // ZDC and SMD packet number
   Packet *p = _event->getPacket(pid);
   if (p)
   {
@@ -183,6 +217,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
     CompSmdAdc();
     CompSmdPos();
     CompSumSmd();
+    CountLRUD();
 
     bool fill_hor_south = false;
     bool fill_ver_south = false;
@@ -241,19 +276,6 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
     bool smd_ovld_south = false;
 
     // FILLING OUT THE HISTOGRAMS
-    if (fired_smd_hor_s && fired_smd_ver_s && !smd_ovld_south)
-    {
-      fill_hor_south = true;
-      fill_ver_south = true;
-      smd_hor_south->Fill( smd_pos[2] );
-      smd_ver_south->Fill( smd_pos[3] );
-    }
-    if (fill_hor_south && fill_ver_south) {
-      smd_sum_ver_south->Fill(smd_sum[3]);
-      smd_sum_hor_south->Fill(smd_sum[2]);
-      smd_xy_south->Fill(smd_pos[3], smd_pos[2]);
-    }
-
     if (fired_smd_hor_n && fired_smd_ver_n && !smd_ovld_north)
     {
       fill_hor_north = true;
@@ -261,17 +283,33 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
       smd_hor_north->Fill( smd_pos[0] );
       smd_ver_north->Fill( smd_pos[1] );
     }
-    if (fill_hor_north && fill_ver_north) {
+    if (fill_hor_north && fill_ver_north) 
+    {
       smd_sum_ver_north->Fill(smd_sum[1]);
       smd_sum_hor_north->Fill(smd_sum[0]);
       smd_xy_north->Fill(smd_pos[1], smd_pos[0]);
     }
 
+    if (fired_smd_hor_s && fired_smd_ver_s && !smd_ovld_south)
+    {
+      fill_hor_south = true;
+      fill_ver_south = true;
+      smd_hor_south->Fill( smd_pos[2] );
+      smd_ver_south->Fill( smd_pos[3] );
+    }
+    if (fill_hor_south && fill_ver_south) 
+    {
+      smd_sum_ver_south->Fill(smd_sum[3]);
+      smd_sum_hor_south->Fill(smd_sum[2]);
+      smd_xy_south->Fill(smd_pos[3], smd_pos[2]);
+    }
+
+    delete p;
   } // if packet is good
   else {
       std::cout << "Packet 12001 not found!" << std::endl;
+      return Fun4AllReturnCodes::ABORTEVENT;
   }
-  delete p;
 
   return Fun4AllReturnCodes::EVENT_OK;
 }
@@ -294,8 +332,29 @@ int SmdHistGen::EndRun(const int runnumber)
 int SmdHistGen::End(PHCompositeNode *topNode)
 {
   std::cout << "SmdHistGen::End(PHCompositeNode *topNode) This is the End..." << std::endl;
+  CompAsym();
+  // Fill asymmetry graphs
+  asymLR_north->AddPoint(0.0, asym_LR_north);
+  asymLR_north->SetPointError(0, 0.1, asym_LR_north_err);
+  asymUD_north->AddPoint(0.0, asym_UD_north);
+  asymUD_north->SetPointError(0, 0.1, asym_UD_north_err);
+  asym_north->AddPoint(asym_LR_north, asym_UD_north);
+  asym_north->SetPointError(0, asym_LR_north_err, asym_UD_north_err);
+  asymLR_south->AddPoint(0.0, asym_LR_south);
+  asymLR_south->SetPointError(0, 0.1, asym_LR_south_err);
+  asymUD_south->AddPoint(0.0, asym_UD_south);
+  asymUD_south->SetPointError(0, 0.1, asym_UD_south_err);
+  asym_south->AddPoint(asym_LR_south, asym_UD_south);
+  asym_south->SetPointError(0, asym_LR_south_err, asym_UD_south_err);
 
   outfile->cd();
+  asymLR_north->Write();
+  asymUD_north->Write();
+  asym_north->Write();
+  asymLR_south->Write();
+  asymUD_south->Write();
+  asym_south->Write();
+
   outfile->Write();
   outfile->Close();
 
@@ -429,4 +488,79 @@ void SmdHistGen::CompSumSmd() //compute 'digital' sum
       smd_sum[1] += smd_adc[i + 8]; // north vertical
       smd_sum[3] += smd_adc[i + 24]; // south vertical
     }
+}
+
+void SmdHistGen::CountLRUD() // compute LR and UD asymmetries
+{
+  // Important -- need to double check definitions of left and right!
+  // For spin up, I *think* left is positive x for north, negative x for south
+
+  // North side
+  int blueSpin = spinPatternBlue[blueBunchNum];
+  float north_x = smd_pos[1];
+  float north_y = smd_pos[0];
+  if (blueSpin == 1) // spin up
+  {
+    if (north_x > 0.0) { Nleft_north++; }
+    else { Nright_north++; }
+    if (north_y > 0.0) { Nup_north++; }
+    else { Ndown_north++; }
+  }
+  else if (blueSpin == -1) // spin down
+  {
+    if (north_x < 0.0) { Nleft_north++; }
+    else { Nright_north++; }
+    if (north_y < 0.0) { Nup_north++; }
+    else { Ndown_north++; }
+  }
+
+  // South side
+  int yellowSpin = spinPatternYellow[yellowBunchNum];
+  float south_x = smd_pos[1];
+  float south_y = smd_pos[0];
+  if (yellowSpin == 1) // spin up
+  {
+    if (south_x < 0.0) { Nleft_south++; }
+    else { Nright_south++; }
+    if (south_y > 0.0) { Nup_south++; }
+    else { Ndown_south++; }
+  }
+  else if (yellowSpin == -1) // spin down
+  {
+    if (south_x > 0.0) { Nleft_south++; }
+    else { Nright_south++; }
+    if (south_y < 0.0) { Nup_south++; }
+    else { Ndown_south++; }
+  }
+}
+
+void SmdHistGen::CompAsym() // compute LR and UD asymmetries
+{
+  // North
+  if (Nleft_north + Nright_north > 0)
+  {
+    asym_LR_north = (float)(Nleft_north - Nright_north)/(float)(Nleft_north + Nright_north);
+    asym_LR_north_err = sqrt((1+asym_LR_north*asym_LR_north)/(Nleft_north + Nright_north));
+  }
+  else { asym_LR_north = 0.0; }
+  if (Nup_north + Ndown_north > 0)
+  {
+    asym_UD_north = (float)(Nup_north - Ndown_north)/(float)(Nup_north + Ndown_north);
+    asym_UD_north_err = sqrt((1+asym_UD_north*asym_UD_north)/(Nup_north + Ndown_north));
+  }
+  else { asym_UD_north = 0.0; }
+
+  // South
+  if (Nleft_south + Nright_south > 0)
+  {
+    asym_LR_south = (float)(Nleft_south - Nright_south)/(float)(Nleft_south + Nright_south);
+    asym_LR_south_err = sqrt((1+asym_LR_south*asym_LR_south)/(Nleft_south + Nright_south));
+  }
+  else { asym_LR_south = 0.0; }
+  if (Nup_south + Ndown_south > 0)
+  {
+    asym_UD_south = (float)(Nup_south - Ndown_south)/(float)(Nup_south + Ndown_south);
+    asym_UD_south_err = sqrt((1+asym_UD_south*asym_UD_south)/(Nup_south + Ndown_south));
+  }
+  else { asym_UD_south = 0.0; }
 }
