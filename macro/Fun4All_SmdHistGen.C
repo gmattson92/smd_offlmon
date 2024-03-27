@@ -17,7 +17,8 @@ R__LOAD_LIBRARY(libSmdHistGen.so)
 
 void Fun4All_SmdHistGen(
                      int nEvents = 1,
-                     const char *infile = "/sphenix/lustre01/sphnxpro/commissioning/ZDC/junk/junk_seb14-00028671-0000.prdf",
+                     const char *infile_smd = "/sphenix/lustre01/sphnxpro/commissioning/ZDC/junk/junk_seb14-00028671-0000.prdf",
+                     const char *infile_gl1 = "/sphenix/lustre01/sphnxpro/commissioning/GL1/cosmics/GL1_cosmics_gl1daq-00034390-0000.prdf",
 		     const string outname = "SmdHists.root")
 {
   // this convenience library knows all our i/o objects so you don't
@@ -27,10 +28,15 @@ void Fun4All_SmdHistGen(
   Fun4AllServer *se = Fun4AllServer::instance();
   se->Verbosity(0);  // set it to 1 if you want event printouts
 
-  Fun4AllInputManager *inPrdf = new Fun4AllPrdfInputManager("PRDFSMD");
-  std::cout << "Adding input file " << infile << std::endl;
-  inPrdf->AddFile(infile);
-  se->registerInputManager(inPrdf);
+  Fun4AllInputManager *inPrdf_smd = new Fun4AllPrdfInputManager("PRDFSMD");
+  std::cout << "Adding input file " << infile_smd << std::endl;
+  inPrdf_smd->AddFile(infile_smd);
+  se->registerInputManager(inPrdf_smd);
+
+  Fun4AllInputManager *inPrdf_gl1 = new Fun4AllPrdfInputManager("PRDFSMD");
+  std::cout << "Adding input file " << infile_gl1 << std::endl;
+  inPrdf_gl1->AddFile(infile_gl1);
+  se->registerInputManager(inPrdf_gl1);
 
   SmdHistGen *eval = new SmdHistGen("SmdHistGen", outname.c_str());
   se -> registerSubsystem(eval);
