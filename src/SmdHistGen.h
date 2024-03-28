@@ -72,6 +72,11 @@ class SmdHistGen : public SubsysReco
   CaloWaveformFitting *WaveformProcessingFast = nullptr;
 
   double PI = 3.14159;
+  // packet id numbers
+  const int packet_GL1 = 14901;
+  const int packet_blue = 14902;
+  const int packet_yellow = 14903;
+  const int packet_smd = 12001;
   // smd
   // north smd
   TH1 *smd_hor_north = nullptr;
@@ -96,8 +101,7 @@ class SmdHistGen : public SubsysReco
 
   int spinPatternBlue[120] = {0};
   int spinPatternYellow[120] = {0};
-  int blueBunchNum = 0;
-  int yellowBunchNum = 0;
+  int bunchNum = 0;
   int Nleft_north = 0;
   int Nright_north = 0;
   int Nup_north = 0;

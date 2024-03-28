@@ -146,7 +146,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
   if ( _event->getEvtType() == BEGRUNEVENT)
     std::cout << "Found BEGRUNEVENT" << std::endl;
   {
-    Packet *bluePacket = _event->getPacket(14902);
+    Packet *bluePacket = _event->getPacket(packet_blue);
     if ( bluePacket)
     {
       std::cout << "Found bluePacket" << std::endl;
@@ -163,7 +163,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
       // exit(1)
       for (int i = 0; i < 120; i++) {spinPatternBlue[i] = 1;}
     }
-    Packet *yellowPacket = _event->getPacket(14903);
+    Packet *yellowPacket = _event->getPacket(packet_yellow);
     if ( yellowPacket)
     {
       for (int i = 0; i < 120; i++)
@@ -186,14 +186,22 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
       return Fun4AllReturnCodes::ABORTEVENT;
   }
 
-  //
-  // Need to figure out how to get the bunch numbers for this event
-  // blueBunchNum = ???;
-  // yellowBunchNum = ???;
-  //
+  // Get the bunch number for this event
+  Packet *p = _event->getPacket(packet_GL1);
+  if (p)
+  {
+    bunchNum = p->lValue(0, "BunchNumber"); 
+    delete p;
+  }
+  else
+  {
+    std::cout << "Could not find GL1 packet!" << std::endl;
+    /* return Fun4AllReturnCodes::ABORTEVENT; */
+    // for testing
+    bunchNum = 0;
+  }
 
-  int pid = 12001; // ZDC and SMD packet number
-  Packet *p = _event->getPacket(pid);
+  p = _event->getPacket(packet_smd);
   if (p)
   {
     // in this for loop we get: zdc_adc and smd_adc
@@ -307,7 +315,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
     delete p;
   } // if packet is good
   else {
-      std::cout << "Packet 12001 not found!" << std::endl;
+      std::cout << "SMD packet not found!" << std::endl;
       return Fun4AllReturnCodes::ABORTEVENT;
   }
 
@@ -496,7 +504,7 @@ void SmdHistGen::CountLRUD() // compute LR and UD asymmetries
   // For spin up, I *think* left is positive x for north, negative x for south
 
   // North side
-  int blueSpin = spinPatternBlue[blueBunchNum];
+  int blueSpin = spinPatternBlue[bunchNum];
   float north_x = smd_pos[1];
   float north_y = smd_pos[0];
   if (blueSpin == 1) // spin up
@@ -515,7 +523,7 @@ void SmdHistGen::CountLRUD() // compute LR and UD asymmetries
   }
 
   // South side
-  int yellowSpin = spinPatternYellow[yellowBunchNum];
+  int yellowSpin = spinPatternYellow[bunchNum];
   float south_x = smd_pos[1];
   float south_y = smd_pos[0];
   if (yellowSpin == 1) // spin up
