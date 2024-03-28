@@ -153,7 +153,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
       for (int i = 0; i < 120; i++)
       {
 	spinPatternBlue[i] = bluePacket->iValue(i);
-	std::cout << "Blue i=" << spinPatternBlue[i] << std::endl;
+	std::cout << "Blue " << i << "=" << spinPatternBlue[i] << std::endl;
       }
       delete bluePacket;
     }

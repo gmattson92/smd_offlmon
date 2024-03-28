@@ -33,7 +33,8 @@ void Fun4All_SmdHistGen(
   inPrdf_smd->AddFile(infile_smd);
   se->registerInputManager(inPrdf_smd);
 
-  Fun4AllInputManager *inPrdf_gl1 = new Fun4AllPrdfInputManager("PRDFSMD");
+  /* Fun4AllInputManager *inPrdf_gl1 = new Fun4AllPrdfInputManager("PRDFSMD"); // does not crash, but does not open the GL1 file correctly */
+  Fun4AllInputManager *inPrdf_gl1 = new Fun4AllPrdfInputManager("PRDFGL1"); // crashes when trying to open prdfs from different runs
   std::cout << "Adding input file " << infile_gl1 << std::endl;
   inPrdf_gl1->AddFile(infile_gl1);
   se->registerInputManager(inPrdf_gl1);
