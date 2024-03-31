@@ -73,7 +73,7 @@ class SmdHistGen : public SubsysReco
 
   double PI = 3.14159;
   // packet id numbers
-  const int packet_GL1 = 14901;
+  const int packet_GL1 = 14001;
   const int packet_blue = 14902;
   const int packet_yellow = 14903;
   const int packet_smd = 12001;

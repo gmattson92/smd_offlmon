@@ -144,12 +144,12 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
 
   // Get spin pattern info
   if ( _event->getEvtType() == BEGRUNEVENT)
-    std::cout << "Found BEGRUNEVENT" << std::endl;
   {
+    std::cout << "Found BEGRUNEVENT" << std::endl;
     Packet *bluePacket = _event->getPacket(packet_blue);
     if ( bluePacket)
     {
-      std::cout << "Found bluePacket" << std::endl;
+      std::cout << "Found blue packet" << std::endl;
       for (int i = 0; i < 120; i++)
       {
 	spinPatternBlue[i] = bluePacket->iValue(i);
@@ -157,28 +157,44 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
       }
       delete bluePacket;
     }
-    else // if we couldn't find the spin pattern, fill it with all spin up
+    else 
     {
-      // std::cout << "Could not find spin pattern packet for blue beam! Exiting" << std::endl;
+      std::cout << "Could not find spin pattern packet for blue beam! Exiting" << std::endl;
       // exit(1)
-      for (int i = 0; i < 120; i++) {spinPatternBlue[i] = 1;}
+      // for testing -- if we couldn't find the spin pattern, fill it with a dummy pattern
+      // +-+-+-+- ...
+      for (int i = 0; i < 120; i++) 
+      {
+	int mod = i%2;
+	if (mod == 0) spinPatternBlue[i] = 1;
+	else spinPatternBlue[i] = -1;
+      }
     }
     Packet *yellowPacket = _event->getPacket(packet_yellow);
     if ( yellowPacket)
     {
+      std::cout << "Found yellow packet" << std::endl;
       for (int i = 0; i < 120; i++)
       {
 	spinPatternYellow[i] = yellowPacket->iValue(i);
+	std::cout << "Yellow " << i << "=" << spinPatternYellow[i] << std::endl;
       }
       delete yellowPacket;
     }
-    else // if we couldn't find the spin pattern, fill it with all spin up
+    else 
     {
-      // std::cout << "Could not find spin pattern packet for yellow beam! Exiting" << std::endl;
+      std::cout << "Could not find spin pattern packet for yellow beam! Exiting" << std::endl;
       // exit(1)
-      for (int i = 0; i < 120; i++) {spinPatternYellow[i] = 1;}
+      // for testing -- if we couldn't find the spin pattern, fill it with a dummy pattern
+      // ++--++-- ,,,
+      for (int i = 0; i < 120; i++) 
+      {
+	int mod = i%4;
+	if (mod == 0 || mod ==1) spinPatternYellow[i] = 1;
+	else spinPatternYellow[i] = -1;
+      }
     }
-  }
+  } // end getting spin pattern
 
   if (_event->getEvtType() != DATAEVENT)  /// special events where we do not read out the calorimeters
   {
@@ -191,11 +207,12 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
   if (p)
   {
     bunchNum = p->lValue(0, "BunchNumber"); 
+    /* std::cout << "Found GL1 packet. Bunch number = " << bunchNum << std::endl; */
     delete p;
   }
   else
   {
-    std::cout << "Could not find GL1 packet!" << std::endl;
+    /* std::cout << "Could not find GL1 packet!" << std::endl; */
     /* return Fun4AllReturnCodes::ABORTEVENT; */
     // for testing
     bunchNum = 0;
@@ -524,8 +541,8 @@ void SmdHistGen::CountLRUD() // compute LR and UD asymmetries
 
   // South side
   int yellowSpin = spinPatternYellow[bunchNum];
-  float south_x = smd_pos[1];
-  float south_y = smd_pos[0];
+  float south_x = smd_pos[3];
+  float south_y = smd_pos[2];
   if (yellowSpin == 1) // spin up
   {
     if (south_x < 0.0) { Nleft_south++; }
