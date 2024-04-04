@@ -61,6 +61,7 @@ class SmdHistGen : public SubsysReco
  private:
   const char* outfilename;
   TFile *outfile;
+  int evtctr = 0;
 
   std::vector<float> anaWaveformFast(Packet *p, const int channel);
   void CompSmdAdc();

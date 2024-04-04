@@ -134,7 +134,8 @@ int SmdHistGen::InitRun(PHCompositeNode *topNode)
 int SmdHistGen::process_event(PHCompositeNode *topNode)
 {
   /* std::cout << "SmdHistGen::process_event(PHCompositeNode *topNode) Processing Event" << std::endl; */
-  
+  evtctr++;
+
   Event *_event = findNode::getClass<Event>(topNode, "PRDF");
   if (_event == nullptr)
   {
@@ -159,7 +160,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
     }
     else 
     {
-      std::cout << "Could not find spin pattern packet for blue beam! Exiting" << std::endl;
+      std::cout << "Could not find spin pattern packet for blue beam! Using dummy pattern" << std::endl;
       // exit(1)
       // for testing -- if we couldn't find the spin pattern, fill it with a dummy pattern
       // +-+-+-+- ...
@@ -183,7 +184,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
     }
     else 
     {
-      std::cout << "Could not find spin pattern packet for yellow beam! Exiting" << std::endl;
+      std::cout << "Could not find spin pattern packet for yellow beam! Using dummy pattern" << std::endl;
       // exit(1)
       // for testing -- if we couldn't find the spin pattern, fill it with a dummy pattern
       // ++--++-- ,,,
@@ -207,7 +208,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
   if (p)
   {
     bunchNum = p->lValue(0, "BunchNumber"); 
-    /* std::cout << "Found GL1 packet. Bunch number = " << bunchNum << std::endl; */
+    std::cout << "Found GL1 packet. Bunch number = " << bunchNum << std::endl;
     delete p;
   }
   else
@@ -215,7 +216,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
     /* std::cout << "Could not find GL1 packet!" << std::endl; */
     /* return Fun4AllReturnCodes::ABORTEVENT; */
     // for testing
-    bunchNum = 0;
+    bunchNum = evtctr%4;
   }
 
   p = _event->getPacket(packet_smd);
@@ -357,6 +358,7 @@ int SmdHistGen::EndRun(const int runnumber)
 int SmdHistGen::End(PHCompositeNode *topNode)
 {
   std::cout << "SmdHistGen::End(PHCompositeNode *topNode) This is the End..." << std::endl;
+  std::cout << "Processed " << evtctr << " events." << std::endl;
   CompAsym();
   // Fill asymmetry graphs
   asymLR_north->AddPoint(0.0, asym_LR_north);
