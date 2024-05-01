@@ -707,7 +707,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
 
 
 
- void SmdHistGen::CompAsym() // compute LR and UD asymmetries for Blue Beam 
+ void SmdHistGen::CompAsym() // compute LR and UD asymmetries for Blue Beam and Yellow beam
  {
    // North
    if (b_u_left_north + b_d_left_north > 0)
@@ -769,7 +769,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
  }
  
  
-void SmdHistGen::CompSqAsym() // compute LR and UD square-root asymmetries
+void SmdHistGen::CompSqAsym() // compute LR and UD square-root asymmetries; the error formula needs to be rechecked!
 {
 
   // North blue beam
