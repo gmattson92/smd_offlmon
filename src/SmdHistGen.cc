@@ -9,11 +9,14 @@
 #include <phool/PHObject.h>        // for PHObject
 #include <phool/getClass.h>
 
-#include <caloreco/CaloWaveformFitting.h>
+//to analyse DST
+#include <calobase/TowerInfoContainer.h>
+#include <calobase/TowerInfo.h>
+#include <ffaobjects/RunHeaderv1.h>
 
-#include <Event/Event.h>
-#include <Event/EventTypes.h>
-#include <Event/packet.h>
+//spin database stuff
+#include <uspin/SpinDBContent.h>
+#include <uspin/SpinDBOutput.h>
 
 //ROOT stuff
 #include <TFile.h>
@@ -137,8 +140,6 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
   y_sqasym_south->SetNameTitle("y_sqasym_south", "Yellow Beam South SMD sqAsymmetry;A_{N} Left-Right;A_{N} Up-Down");
 
 
-  WaveformProcessingFast = new CaloWaveformFitting();
-
   // Set relative gain values to unity for now
   for (int i=0; i<16; i++) {
     smd_north_rgain[i] = 1.0;
@@ -183,6 +184,14 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
   */
   // done reading gains from file
 
+  // Get run number
+  RunHeaderv1* runheader = findNode::getClass<RunHeaderv1>(topNode, "RunHeader");
+  if (runheader) {runNum = runheader->get_RunNumber();}
+  else {runNum = 0;}
+
+  // Get spin pattern info
+  GetSpinPatterns();
+
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -198,244 +207,111 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
 {
   /* std::cout << "SmdHistGen::process_event(PHCompositeNode *topNode) Processing Event" << std::endl; */
   
-  Event *_event = findNode::getClass<Event>(topNode, "PRDF");
-  if (_event == nullptr)
-  {
-      std::cout << PHWHERE << " Event not found" << std::endl;
-      return Fun4AllReturnCodes::ABORTEVENT;
-  }
-
-  // Get spin pattern info
-  if ( _event->getEvtType() == BEGRUNEVENT)
-  {
-    std::cout << "Found BEGRUNEVENT" << std::endl;
-    Packet *bluePacket = _event->getPacket(packet_blue);
-    if ( bluePacket)
-    {
-	std::cout << "Found bluePacket" << std::endl;
-	for (int i = 0; i < NBUNCHES; i++)
-	  {
-	    spinPatternBlue[i] = bluePacket->iValue(i);
-	    std::cout << "Blue " << i << "=" << spinPatternBlue[i] << std::endl;
-	  }
-	delete bluePacket;
-    }
-    else 
-    {
-      // std::cout << "Could not find spin pattern packet for blue beam! Exiting" << std::endl;
-      // exit(1)
-      // for testing -- if we couldn't find the spin pattern, fill it with a dummy pattern
-      // +-+-+-+- ...
-      std::cout << "Could not find spin pattern packet for blue beam! Using dummy pattern" << std::endl;
-      for (int i = 0; i < NBUNCHES; i++) 
-      {
-	int mod = i%2;
-	if (mod == 0) spinPatternBlue[i] = 1;
-	else spinPatternBlue[i] = -1;
-      }
-    }
-    Packet *yellowPacket = _event->getPacket(packet_yellow);
-    if ( yellowPacket)
-    {
-	std::cout << "Found yellowPacket" << std::endl;
-	for (int i = 0; i < NBUNCHES; i++)
-	{
-	    spinPatternYellow[i] = yellowPacket->iValue(i);
-	    std::cout << "Yellow " << i << "=" << spinPatternBlue[i] << std::endl;
-	}
-	delete yellowPacket;
-    }
-    else 
-    {
-	// std::cout << "Could not find spin pattern packet for yellow beam! Exiting" << std::endl;
-	// exit(1)
-	// for testing -- if we couldn't find the spin pattern, fill it with a dummy pattern
-	// ++--++-- ,,,
-	std::cout << "Could not find spin pattern packet for yellow beam! Using dummy pattern" << std::endl;
-	for (int i = 0; i < NBUNCHES; i++)
-	{
-	    int mod = i%4;
-	    if (mod == 0 || mod ==1) spinPatternYellow[i] = 1;
-	    else spinPatternYellow[i] = -1;
-	}
-    }
-  } // end getting spin pattern
-
-  /*
-  if(_event->getEvtType() == DATAEVENT)
-    {
-      Packet *p = _event->getPacket(packet_GL1);
-      int bunchnr = p->lValue(0, "BunchNumber");
-      for (int i = 0; i < 16; i++)
-	{
-	  // 2nd arg of lValue: 0 is raw trigger count, 1 is live trigger count, 2 is scaled trigger count
-	  //  this is the gl1 scaler for now until gl1p scaler is implemented in the GL1 packets
-	  long gl1pscaler = p->lValue(i, 2);
-	  //scalercounts[i][bunchnr] = gl1pscaler;
-	  std::cout<<" bunchnr = "<<bunchnr<<" gl1pscaler = "<<gl1pscaler<<std::endl;
-	}
-      delete p;
-    }
-  */
-
-  
-  if (_event->getEvtType() != DATAEVENT)  /// special events where we do not read out the calorimeters
-  {
-      /* std::cout << "Event is not DATAEVENT; is " << _event->getEvtType() << std::endl; */ 
-      return Fun4AllReturnCodes::ABORTEVENT;
-  }
-  
   evtctr++;
 
   // Get the bunch number for this event
-  Packet *p = _event->getPacket(packet_GL1);
-  if (p)
+  if (false)
   {
-    bunchNum = p->lValue(0, "BunchNumber"); 
-    std::cout << "Found GL1 packet. Bunch number = " << bunchNum << std::endl;
-    delete p;
+    bunchNum = 0; // GL1 stuff goes here
+    bunchNum = (bunchNum + crossingShift)%NBUNCHES;
+    std::cout << "Got bunch number = " << bunchNum << std::endl;
   }
   else
   {
-    /* std::cout << "Could not find GL1 packet!" << std::endl; */
-    /* return Fun4AllReturnCodes::ABORTEVENT; */
     // for testing
+    std::cout << "GL1 missing!" << std::endl;
     bunchNum = evtctr%4;
   }
   
-  p = _event->getPacket(packet_smd);
-  if (p)
+  // Get the ADC values
+  TowerInfoContainer* towerinfosZDC;
+  towerinfosZDC = findNode::getClass<TowerInfoContainer>(topNode, "TOWERS_ZDC");
+  if(!towerinfosZDC)
+    {
+      std::cout << PHWHERE << ":: No TOWERS_ZDC!" << std::endl; exit(1);
+    }
+
+  int nchannels_zdc = towerinfosZDC->size();
+  std::cout << "towerinfosZDC has " << nchannels_zdc << " channels" << std::endl;
+  for (int channel = 0; channel < nchannels_zdc;channel++)
   {
-    // in this for loop we get: zdc_adc and smd_adc
-    int channels = std::min(48, p->iValue(0, "CHANNELS"));
-    /* std::cout << "Number of channels is " << channels << std::endl; */ 
-    for (int c = 0; c < channels; c++)
+    // Channel mapping: ZDCS: 0-8; ZDCN: 9-15; SMDN: 16-31; SMDS: 32-47; Veto Counter N: 48 (front); Veto Counter N: 49 (back);  Veto Counter S: 50 (front); Veto Counter S: 51 (back)
+    float zdc_e = towerinfosZDC->get_tower_at_channel(channel)->get_energy();
+    float zdc_t = towerinfosZDC->get_tower_at_channel(channel)->get_time();
+    if (zdc_t) {}
+
+    if (channel < 16) // ZDC
     {
-      std::vector<float> resultFast = anaWaveformFast(p, c);  // fast waveform fitting
-      float signalFast = resultFast.at(0);
-      float signal = signalFast;
-
-      if (c < 16) {zdc_adc[c] = signal;}
-      else 
-      {
-	smd_adc[c - 16] = signal;
-	/* std::cout << "Channel " << c-16 << ": signal is " << signal << std::endl; */ 
-      }
-    }  // channel loop end
-  
-
-    // call the functions
-    CompSmdAdc();
-    CompSmdPos();
-    CompSumSmd();
-    CountLRUD();
-
-    bool fill_hor_south = false;
-    bool fill_ver_south = false;
-
-    bool fill_hor_north = false;
-    bool fill_ver_north = false;
-
-    int s_ver = 0;
-    int s_hor = 0;
-
-    int n_ver  = 0;
-    int n_hor  = 0;
-
-    for ( int i = 0; i < 8; i++)
-    {
-      //if ( smd_adc[i] > 0 ) {n_hor ++;}
-      if ( smd_adc[i] > 8 ) {n_hor ++;} 
+      // ZDC Mapping:
+      // even high gain, odd low gain
+      // 0,1 S1; 2,3 S2; 4,5 S3; 6,7 Ssum
+      // 8,9 N1; 10,11 N2; 12,13 N3; 14,15 Nsum
+      zdc_adc[channel] = zdc_e;
     }
-    for ( int i = 0; i < 7; i++)
+    if (channel >= 16 && channel < 48) // SMD
     {
-      //if ( smd_adc[i + 8] > 0 ) {n_ver ++;}
-      if ( smd_adc[i + 8] > 5 ) {n_ver ++;} 
+      // SMD Mapping:
+      // 0-7 North H1-8; 8-14 North V1-7; 15 North sum
+      // 16-23 South H1-8; 24-30 South V1-7; 31 South sum
+      smd_adc[channel - 16] = zdc_e;
     }
-
-    for ( int i = 0; i < 8; i++)
+    if (channel >= 48 && channel < 52) // Veto
     {
-      //  if ( smd_adc[i + 16] > 0 ) {s_hor++;}
-      if ( smd_adc[i + 16] > 8 ) {s_hor++;} 
+      // Veto Mapping:
+      // 0 N front; 1 N back; 2 S front; 3 S back
+      veto_adc[channel - 48] = zdc_e;
     }
-    for ( int i = 0; i < 7; i++)
-    {
-      //  if ( smd_adc[i + 24] > 0 ) {s_ver++;}
-      if ( smd_adc[i + 24] > 5 ) {s_ver++;} 
-    }
-
-    bool fired_smd_hor_n = (n_hor  > 1);
-    bool fired_smd_ver_n = (n_ver  > 1);
-
-    bool fired_smd_hor_s = (s_hor > 1);
-    bool fired_smd_ver_s = (s_ver > 1);
-    
-    // Printing for testing
-    /* for (int i=0; i<32; i++) { */ 
-    /*   std::cout << "smd_adc[" << i << "] = " << smd_adc[i] << std::endl; */ 
-    /* } */ 
-    /* std::cout << Form("n_hor=%d, n_ver=%d, s_hor=%d, s_ver=%d\n", n_hor, n_ver, s_hor, s_ver); */ 
-    /* std::cout << Form("fired_smd_hor_n=%d, fired_smd_ver_n=%d, fired_smd_hor_s=%d, fired_smd_ver_s=%d\n", fired_smd_hor_n, fired_smd_ver_n, fired_smd_hor_s, fired_smd_ver_s); */ 
-
-    /***** for testing *****/
-    /* fired_smd_hor_n = 1; */
-    /* fired_smd_ver_n = 1; */
-    /* fired_smd_hor_s = 1; */
-    /* fired_smd_ver_s = 1; */
-    //compute, if smd is overloaded
-    bool smd_ovld_north = false;
-    bool smd_ovld_south = false;
-
-    // FILLING OUT THE HISTOGRAMS
-    if (fired_smd_hor_n && fired_smd_ver_n && !smd_ovld_north)
-    {
-      fill_hor_north = true;
-      fill_ver_north = true;
-      smd_hor_north->Fill( smd_pos[0] );
-      smd_ver_north->Fill( smd_pos[1] );
-    }
-    if (fill_hor_north && fill_ver_north) 
-    {
-      smd_sum_ver_north->Fill(smd_sum[1]);
-      smd_sum_hor_north->Fill(smd_sum[0]);
-      smd_xy_north->Fill(smd_pos[1], smd_pos[0]);
-      // std::cout<<" smd sum ver north = "<<smd_sum[1]<<std::endl;
-      //std::cout<<" smd sum hor north = "<<smd_sum[0]<<std::endl;
-    }
-
-    if (fired_smd_hor_s && fired_smd_ver_s && !smd_ovld_south)
-    {
-      fill_hor_south = true;
-      fill_ver_south = true;
-      smd_hor_south->Fill( smd_pos[2] );
-      smd_ver_south->Fill( smd_pos[3] );
-      //std::cout<<" smd sum hor south = "<<smd_sum[2]<<std::endl;
-      //std::cout<<" smd sum ver south = "<<smd_sum[3]<<std::endl;
-    }
-    if (fill_hor_south && fill_ver_south) 
-    {
-      smd_sum_ver_south->Fill(smd_sum[3]);
-      smd_sum_hor_south->Fill(smd_sum[2]);
-      smd_xy_south->Fill(smd_pos[3], smd_pos[2]);
-    }
-
-    delete p;
-  } // if packet is good
-  else
-  {
-    std::cout << "SMD packet not found!" << std::endl;
-    return Fun4AllReturnCodes::ABORTEVENT;
   }
- 
+
+  // call the functions
+  CompSmdAdc();
+  CompSmdPos();
+  CompSumSmd();
+  CountSMDHits();
+  bool n_neutron = NeutronSelection("north");
+  bool s_neutron = NeutronSelection("south");
+  if (n_neutron) {CountLRUD("north");}
+  if (s_neutron) {CountLRUD("south");}
+
+  // Printing for testing
+  /* for (int i=0; i<32; i++) { */ 
+  /*   std::cout << "smd_adc[" << i << "] = " << smd_adc[i] << std::endl; */ 
+  /* } */ 
+  /* std::cout << Form("n_hor_numhits=%d, n_ver_numhits=%d, s_hor_numhits=%d, s_ver_numhits=%d\n", n_hor_numhits, n_ver_numhits, s_hor_numhits, s_ver_numhits); */ 
+  /* std::cout << Form("fired_smd_hor_n=%d, fired_smd_ver_n=%d, fired_smd_hor_s=%d, fired_smd_ver_s=%d\n", fired_smd_hor_n, fired_smd_ver_n, fired_smd_hor_s, fired_smd_ver_s); */ 
+
+  // FILLING OUT THE HISTOGRAMS
+  if (n_neutron)
+  {
+    smd_hor_north->Fill(smd_pos[0]);
+    smd_ver_north->Fill(smd_pos[1]);
+    smd_sum_ver_north->Fill(smd_sum[1]);
+    smd_sum_hor_north->Fill(smd_sum[0]);
+    smd_xy_north->Fill(smd_pos[1], smd_pos[0]);
+    //std::cout<<" smd sum ver north = "<<smd_sum[1]<<std::endl;
+    //std::cout<<" smd sum hor north = "<<smd_sum[0]<<std::endl;
+  }
+
+  if (s_neutron)
+  {
+    smd_hor_south->Fill(smd_pos[2]);
+    smd_ver_south->Fill(smd_pos[3]);
+    smd_sum_ver_south->Fill(smd_sum[3]);
+    smd_sum_hor_south->Fill(smd_sum[2]);
+    smd_xy_south->Fill(smd_pos[3], smd_pos[2]);
+    //std::cout<<" smd sum hor south = "<<smd_sum[2]<<std::endl;
+    //std::cout<<" smd sum ver south = "<<smd_sum[3]<<std::endl;
+  }
+
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
 //____________________________________________________________________________..
- int SmdHistGen::ResetEvent(PHCompositeNode *topNode)
- {
-  /* std::cout << "SmdHistGen::ResetEvent(PHCompositeNode *topNode) Resetting internal structures, prepare for next event" << std::endl; */
-  return Fun4AllReturnCodes::EVENT_OK;
- }
+int SmdHistGen::ResetEvent(PHCompositeNode *topNode)
+{
+    /* std::cout << "SmdHistGen::ResetEvent(PHCompositeNode *topNode) Resetting internal structures, prepare for next event" << std::endl; */
+    return Fun4AllReturnCodes::EVENT_OK;
+}
 
  //____________________________________________________________________________..
  int SmdHistGen::EndRun(const int runnumber)
@@ -560,22 +436,61 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
    std::cout << "SmdHistGen::Print(const std::string &what) const Printing info for " << what << std::endl;
  }
 
-std::vector<float> SmdHistGen::anaWaveformFast(Packet *p, const int channel)
+void SmdHistGen::GetSpinPatterns()
 {
-  std::vector<float> waveform;
-  for (int s = 0; s < p->iValue(0, "SAMPLES"); s++)
+  // Get the spin patterns from the spin DB
+
+  //  0xffff is the qa_level from XingShiftCal //////
+  unsigned int qa_level = 0xffff;
+  SpinDBContent spin_cont;
+  SpinDBOutput spin_out("phnxrc");
+      
+  spin_out.StoreDBContent(runNum,runNum,qa_level);
+  spin_out.GetDBContentStore(spin_cont,runNum);
+      
+  // Get crossing shift
+  crossingShift = spin_cont.GetCrossingShift();
+  std::cout << "Crossing shift: " << crossingShift << std::endl;
+
+  std::cout << "Blue spin pattern: [";
+  for (int i = 0; i < 120; i++)
   {
-    waveform.push_back(p->iValue(s, channel));
+    spinPatternBlue[i] = spin_cont.GetSpinPatternBlue(i);
+    std::cout << spinPatternBlue[i];
+    if (i < 119)std::cout << ", ";
   }
-  std::vector<std::vector<float>> multiple_wfs;
-  multiple_wfs.push_back(waveform);
+  std::cout << "]" << std::endl;
 
-  std::vector<std::vector<float>> fitresults_zdc;
-  fitresults_zdc = WaveformProcessingFast->calo_processing_fast(multiple_wfs);
+  std::cout << "Yellow spin pattern: [";
+  for (int i = 0; i < 120; i++)
+  {
+    spinPatternYellow[i] = spin_cont.GetSpinPatternYellow(i);
+    std::cout << spinPatternYellow[i];
+    if (i < 119)std::cout << ", ";
+  }
+  std::cout << "]" << std::endl;
 
-  std::vector<float> result;
-  result = fitresults_zdc.at(0);
-  return result;
+  if (false) 
+  {
+    // for testing -- if we couldn't find the spin pattern, fill it with a dummy pattern
+    // +-+-+-+- ...
+    std::cout << "Could not find spin pattern packet for blue beam! Using dummy pattern" << std::endl;
+    for (int i = 0; i < NBUNCHES; i++) 
+    {
+      int mod = i%2;
+      if (mod == 0) spinPatternBlue[i] = 1;
+      else spinPatternBlue[i] = -1;
+    }
+    // for testing -- if we couldn't find the spin pattern, fill it with a dummy pattern
+    // ++--++-- ,,,
+    std::cout << "Could not find spin pattern packet for yellow beam! Using dummy pattern" << std::endl;
+    for (int i = 0; i < NBUNCHES; i++)
+    {
+      int mod = i%4;
+      if (mod == 0 || mod ==1) spinPatternYellow[i] = 1;
+      else spinPatternYellow[i] = -1;
+    }
+  }
 }
 
 void SmdHistGen::CompSmdAdc() // mulitplying by relative gains
@@ -676,78 +591,146 @@ void SmdHistGen::CompSumSmd() //compute 'digital' sum
   }
 }
 
-void SmdHistGen::CountLRUD() // compute LR and UD asymmetries
+void SmdHistGen::CountSMDHits()
+{
+  int minSMDcut = 20; // ADC minimum
+  for ( int i = 0; i < 8; i++)
+  {
+    if ( smd_adc[i] > minSMDcut ) {n_hor_numhits ++;} 
+  }
+  for ( int i = 0; i < 7; i++)
+  {
+    if ( smd_adc[i + 8] > minSMDcut ) {n_ver_numhits ++;} 
+  }
+
+  for ( int i = 0; i < 8; i++)
+  {
+    if ( smd_adc[i + 16] > minSMDcut ) {s_hor_numhits++;} 
+  }
+  for ( int i = 0; i < 7; i++)
+  {
+    if ( smd_adc[i + 24] > minSMDcut ) {s_ver_numhits++;} 
+  }
+}
+
+bool SmdHistGen::NeutronSelection(std::string which)
+{
+  // Requirements:
+  // veto ADC<200
+  // ZDC2 ADC>20 (use high gain channels)
+  // num SMD hits > 1
+  int frontveto, backveto, zdc2, smdhitshor, smdhitsver;
+  if (which == "north") {
+    frontveto = veto_adc[0];
+    backveto = veto_adc[1];
+    zdc2 = zdc_adc[10];
+    smdhitshor = n_hor_numhits;
+    smdhitsver = n_ver_numhits;
+  }
+  else if (which == "south") {
+    frontveto = veto_adc[2];
+    backveto = veto_adc[3];
+    zdc2 = zdc_adc[2];
+    smdhitshor = s_hor_numhits;
+    smdhitsver = s_ver_numhits;
+  }
+  else {
+    std::cout << "NeutronSelection: invalid string " << which << std::endl;
+    return false;
+  }
+
+  if (frontveto > 200) {return false;}
+  if (backveto > 200) {return false;}
+  if (zdc2 < 20) {return false;}
+  if (smdhitshor < 2) {return false;}
+  if (smdhitsver < 2) {return false;}
+  // passed all cuts
+  return true;
+}
+
+void SmdHistGen::CountLRUD(std::string which) // compute LR and UD asymmetries
 {
   // Important -- need to double check definitions of left and right!
   // For spin up, I *think* left is positive x for north, negative x for south
   int blueSpin = spinPatternBlue[bunchNum];
   int yellowSpin = spinPatternYellow[bunchNum];
 
-  // North side
-  float north_x = smd_pos[1];
-  float north_y = smd_pos[0];
-  if (blueSpin == 1) // spin up
+  if (which == "north")
   {
-    if (north_x > 0.0) { b_u_left_north++; }
-    else { b_u_right_north++; }
-    if (north_y > 0.0) { b_u_up_north++; }
-    else { b_u_down_north++; }
-  }
-  else if (blueSpin == -1) // spin down
-  {
-    if (north_x > 0.0) { b_d_left_north++; }
-    else { b_d_right_north++; }
-    if (north_y > 0.0) { b_d_up_north++; }
-    else { b_d_down_north++; }
+    // North side
+    float north_x = smd_pos[1];
+    float north_y = smd_pos[0];
+    if (blueSpin == 1) // spin up
+    {
+      if (north_x > 0.0) { b_u_left_north++; }
+      else { b_u_right_north++; }
+      if (north_y > 0.0) { b_u_up_north++; }
+      else { b_u_down_north++; }
+    }
+    else if (blueSpin == -1) // spin down
+    {
+      if (north_x > 0.0) { b_d_left_north++; }
+      else { b_d_right_north++; }
+      if (north_y > 0.0) { b_d_up_north++; }
+      else { b_d_down_north++; }
+    }
+
+    if (yellowSpin == 1) // spin up
+    {
+      if (north_x > 0.0) { y_u_left_north++; }
+      else { y_u_right_north++; }
+      if (north_y > 0.0) { y_u_up_north++; }
+      else { y_u_down_north++; }
+    }
+    else if (yellowSpin == -1) // spin down
+    {
+      if (north_x > 0.0) { y_d_left_north++; }
+      else { y_d_right_north++; }
+      if (north_y > 0.0) { y_d_up_north++; }
+      else { y_d_down_north++; }
+    }
   }
 
-  if (yellowSpin == 1) // spin up
+  else if (which == "south")
   {
-    if (north_x > 0.0) { y_u_left_north++; }
-    else { y_u_right_north++; }
-    if (north_y > 0.0) { y_u_up_north++; }
-    else { y_u_down_north++; }
-  }
-  else if (yellowSpin == -1) // spin down
-  {
-    if (north_x > 0.0) { y_d_left_north++; }
-    else { y_d_right_north++; }
-    if (north_y > 0.0) { y_d_up_north++; }
-    else { y_d_down_north++; }
-  }
+    // South side
+    float south_x = smd_pos[2];
+    float south_y = smd_pos[3];
 
-  // South side
-  float south_x = smd_pos[2];
-  float south_y = smd_pos[3];
-
-  if (blueSpin == 1) // spin up
-  {
+    if (blueSpin == 1) // spin up
+    {
       if (south_x < 0.0) { b_u_left_south++; }
       else { b_u_right_south++; }
       if (south_y > 0.0) { b_u_up_south++; }
       else { b_u_down_south++; }
-  }
-  else if (blueSpin == -1) // spin down
-  {
+    }
+    else if (blueSpin == -1) // spin down
+    {
       if (south_x < 0.0) { b_d_left_south++; }
       else { b_d_right_south++; }
       if (south_y > 0.0) { b_d_up_south++; }
       else { b_d_down_south++; }
-  }
+    }
 
-  if (yellowSpin == 1) // spin up
-  {
+    if (yellowSpin == 1) // spin up
+    {
       if (south_x < 0.0) { y_u_left_south++; }
       else { y_u_right_south++; }
       if (south_y > 0.0) { y_u_up_south++; }
       else { y_u_down_south++; }
-  }
-  else if (yellowSpin == -1) // spin down
-  {
+    }
+    else if (yellowSpin == -1) // spin down
+    {
       if (south_x < 0.0) { y_d_left_south++; }
       else { y_d_right_south++; }
       if (south_y > 0.0) { y_d_up_south++; }
       else { y_d_down_south++; }
+    }
+  }
+  
+  else
+  {
+    std::cout << "CountLRUD: invalid string " << which << std::endl;
   }
 }
 

@@ -15,8 +15,6 @@ class TTree;
 class TH1;
 class TH2;
 class TGraphErrors;
-class Packet;
-class CaloWaveformFitting;
 class TRandom;
 
 class SmdHistGen : public SubsysReco
@@ -65,25 +63,17 @@ class SmdHistGen : public SubsysReco
   TFile *outfile;
   int evtctr = 0;
 
-  std::vector<float> anaWaveformFast(Packet *p, const int channel);
+  void GetSpinPatterns();
   void CompSmdAdc();
   void CompSmdPos();
   void CompSumSmd();
-  void CompZdcAdc();
-  void CountLRUD();
+  void CountSMDHits();
+  bool NeutronSelection(std::string which);
+  void CountLRUD(std::string which);
   void CompAsym();
   void CompSqAsym();
 
-  CaloWaveformFitting *WaveformProcessingFast = nullptr;
-
   double PI = 3.14159;
-  // packet id numbers
-  const int packet_GL1 = 14001;
-  const int packet_blue = 14902;
-  const int packet_yellow = 14903;
-  const int packet_smd = 12001;
-  Packet *pBlueSpin = nullptr;
-  Packet *pYellSpin = nullptr;
 
   // Histograms and graphs
   // north smd
@@ -136,6 +126,8 @@ class SmdHistGen : public SubsysReco
   int spinPatternBlue[NBUNCHES] = {0};
   int spinPatternYellow[NBUNCHES] = {0};
   int bunchNum = 0;
+  int crossingShift = 0;
+  int runNum = 0;
 
   int b_u_up_north = 0;
   int b_u_down_north = 0;
@@ -211,17 +203,18 @@ class SmdHistGen : public SubsysReco
 
   float smd_adc[32] = {0.0f};
   float zdc_adc[16] = {0.0f};
+  float veto_adc[4] = {0.0f};
   float smd_sum[4] = {0.0f}; 
   float smd_pos[4] = {0.0f};
 
   float gain[32] = {0.0f};
   float smd_south_rgain[16] = {0.0f};
   float smd_north_rgain[16] = {0.0f};
-  float overflow0[40] = {0.0f};
-  float overflow1[40] = {0.0f};
 
-  TRandom3 rndm;
-
+  int n_hor_numhits  = 0;
+  int n_ver_numhits  = 0;
+  int s_hor_numhits = 0;
+  int s_ver_numhits = 0;
 
 };
 

@@ -22,7 +22,9 @@ libSmdHistGen_la_SOURCES = \
 libSmdHistGen_la_LIBADD = \
   -lphool \
   -lSubsysReco \
-  -lcalo_reco
+  -lffaobjects \
+  -lcalo_reco \
+  -luspin
 
 BUILT_SOURCES = testexternals.cc
 
