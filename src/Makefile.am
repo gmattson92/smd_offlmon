@@ -23,6 +23,7 @@ libSmdHistGen_la_LIBADD = \
   -lphool \
   -lSubsysReco \
   -lffaobjects \
+  -lffarawobjects \
   -lcalo_reco \
   -luspin
 

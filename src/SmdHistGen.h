@@ -21,7 +21,7 @@ class SmdHistGen : public SubsysReco
 {
  public:
 
-  SmdHistGen(const std::string &name = "SmdHistGen", const char* outname = "SmdHists.root");
+  SmdHistGen(const std::string &name = "SmdHistGen", const int runnumber = 0, const char* outname = "SmdHists.root");
 
   ~SmdHistGen() override;
 
@@ -77,8 +77,21 @@ class SmdHistGen : public SubsysReco
 
   // Histograms and graphs
   // north smd
+  TH1 *smd_hor_north_total_multiplicity = nullptr;
+  TH1 *smd_ver_north_total_multiplicity = nullptr;
+  TH1 *smd_hor_north_neutron_multiplicity = nullptr;
+  TH1 *smd_ver_north_neutron_multiplicity = nullptr;
+  TH1* smd_north_signals[15] = {nullptr};
+  TH1 *zdc1_north = nullptr;
+  TH1 *zdc2_north = nullptr;
+  TH1 *vetofront_north = nullptr;
+  TH1 *vetoback_north = nullptr;
   TH1 *smd_hor_north = nullptr;
   TH1 *smd_ver_north = nullptr;
+  TH1 *smd_hor_north_up = nullptr;
+  TH1 *smd_ver_north_up = nullptr;
+  TH1 *smd_hor_north_down = nullptr;
+  TH1 *smd_ver_north_down = nullptr;
   TH1 *smd_sum_hor_north = nullptr;
   TH1 *smd_sum_ver_north = nullptr;
   // south smd 

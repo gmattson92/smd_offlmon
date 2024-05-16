@@ -4,6 +4,9 @@
 #include <fun4all/Fun4AllDstInputManager.h>
 #include <fun4all/Fun4AllInputManager.h>
 #include <fun4all/Fun4AllServer.h>
+#include <fun4all/Fun4AllUtils.h>
+
+#include <TString.h>
 
 #include <smdhistgen/SmdHistGen.h>
 
@@ -13,8 +16,7 @@ R__LOAD_LIBRARY(libSmdHistGen.so)
 
 void Fun4All_SmdHistGen(
                      int nEvents = 1,
-                     const char *infilelist = "dst_calo_run2pp-00042086.list",
-		     const string outname = "SmdHists-42086.root")
+                     const char *infilelist = "42200.list")
 {
   // this convenience library knows all our i/o objects so you don't
   // have to figure out what is in each dst type
@@ -28,7 +30,13 @@ void Fun4All_SmdHistGen(
   inDst_smd->AddListFile(infilelist);
   se->registerInputManager(inDst_smd);
 
-  SmdHistGen *eval = new SmdHistGen("SmdHistGen", outname.c_str());
+  std::list<std::string> inputfiles = inDst_smd->GetFileList();
+  std::string inputFile = inputfiles.front();
+  std::pair<int, int> runseg = Fun4AllUtils::GetRunSegment(inputFile);
+  int runnumber = runseg.first;
+  char* outname = Form("SmdHists-%d.root", runnumber);
+  std::cout << "Output file will be " << outname << std::endl;
+  SmdHistGen *eval = new SmdHistGen("SmdHistGen", runnumber, outname);
   se -> registerSubsystem(eval);
   
   se->run(nEvents);

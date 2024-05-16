@@ -13,6 +13,7 @@
 #include <calobase/TowerInfoContainer.h>
 #include <calobase/TowerInfo.h>
 #include <ffaobjects/RunHeaderv1.h>
+#include <ffarawobjects/Gl1Packetv1.h>
 
 //spin database stuff
 #include <uspin/SpinDBContent.h>
@@ -24,12 +25,17 @@
 #include <TH2.h>
 #include <TGraphErrors.h>
 #include <TString.h>
+#include <TCanvas.h>
+#include <TLegend.h>
+#include <TStyle.h>
+
 
 //____________________________________________________________________________..
-SmdHistGen::SmdHistGen(const std::string &name, const char* outname):
+SmdHistGen::SmdHistGen(const std::string &name, const int runnumber, const char* outname):
   SubsysReco(name),
   outfilename(outname),
-  outfile(nullptr)
+  outfile(nullptr),
+  runNum(runnumber)
 {
   std::cout << "SmdHistGen::SmdHistGen(const std::string &name) Calling ctor" << std::endl;
 }
@@ -51,8 +57,24 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
 
   // Create hitograms
   // north smd
+  smd_hor_north_total_multiplicity = new TH1F("smd_hor_north_total_multiplicity", "Total Hit Multiplicity, SMD North Horizontal;Channel;Counts", 8, -0.5, 7.5);
+  smd_ver_north_total_multiplicity = new TH1F("smd_ver_north_total_multiplicity", "Total Hit Multiplicity, SMD North Vertical;Channel;Counts", 7, -0.5, 6.5);
+  smd_hor_north_neutron_multiplicity = new TH1F("smd_hor_north_neutron_multiplicity", "Neutron Hit Multiplicity, SMD North Horizontal;Channel;Counts", 8, -0.5, 7.5);
+  smd_ver_north_neutron_multiplicity = new TH1F("smd_ver_north_neutron_multiplicity", "Neutron Hit Multiplicity, SMD North Vertical;Channel;Counts", 7, -0.5, 6.5);
+  for (int i=0; i<15; i++)
+  {
+    smd_north_signals[i] = new TH1F(Form("smd_north_signal_%d", i), Form("North SMD Channel %d", i), 256, 0, 500);
+  }
+  zdc1_north = new TH1F("zdc1_north", "North ZDC1 Signal;ADC;Counts", 256, 0, 500);
+  zdc2_north = new TH1F("zdc2_north", "North ZDC2 Signal;ADC;Counts", 256, 0, 500);
+  vetofront_north = new TH1F("vetofront_north", "North Front Veto Signal;ADC;Counts", 256, 0, 500);
+  vetoback_north = new TH1F("vetoback_north", "North Back Veto Signal;ADC;Counts", 256, 0, 500);
   smd_hor_north = new TH1F("smd_hor_north", "Beam centroid distribution, SMD North y", 296, -5.92, 5.92);
   smd_ver_north = new TH1F("smd_ver_north", "Beam centroid distribution, SMD North x", 220, -5.5, 5.5);
+  smd_hor_north_up = new TH1F("smd_hor_north_up", "Beam centroid distribution, SMD North y, Spin Up", 296, -5.92, 5.92);
+  smd_ver_north_up = new TH1F("smd_ver_north_up", "Beam centroid distribution, SMD North x, Spin Up", 220, -5.5, 5.5);
+  smd_hor_north_down = new TH1F("smd_hor_north_down", "Beam centroid distribution, SMD North y, Spin Down", 296, -5.92, 5.92);
+  smd_ver_north_down = new TH1F("smd_ver_north_down", "Beam centroid distribution, SMD North x, Spin Down", 220, -5.5, 5.5);
   smd_sum_hor_north = new TH1F ("smd_sum_hor_north", "SMD North y", 512, 0, 2048);
   smd_sum_ver_north = new TH1F ("smd_sum_ver_north", "SMD North x", 512, 0, 2048);
   // south smd 
@@ -185,9 +207,7 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
   // done reading gains from file
 
   // Get run number
-  RunHeaderv1* runheader = findNode::getClass<RunHeaderv1>(topNode, "RunHeader");
-  if (runheader) {runNum = runheader->get_RunNumber();}
-  else {runNum = 0;}
+  std::cout << "Run number is " << runNum << std::endl;
 
   // Get spin pattern info
   GetSpinPatterns();
@@ -210,11 +230,12 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
   evtctr++;
 
   // Get the bunch number for this event
-  if (false)
+  Gl1Packetv1* gl1 = findNode::getClass<Gl1Packetv1>(topNode, "GL1Packet");
+  if (gl1)
   {
-    bunchNum = 0; // GL1 stuff goes here
+    bunchNum = gl1->getBunchNumber();
     bunchNum = (bunchNum + crossingShift)%NBUNCHES;
-    std::cout << "Got bunch number = " << bunchNum << std::endl;
+    /* std::cout << "Got bunch number = " << bunchNum << std::endl; */
   }
   else
   {
@@ -232,7 +253,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
     }
 
   int nchannels_zdc = towerinfosZDC->size();
-  std::cout << "towerinfosZDC has " << nchannels_zdc << " channels" << std::endl;
+  /* std::cout << "towerinfosZDC has " << nchannels_zdc << " channels" << std::endl; */
   for (int channel = 0; channel < nchannels_zdc;channel++)
   {
     // Channel mapping: ZDCS: 0-8; ZDCN: 9-15; SMDN: 16-31; SMDS: 32-47; Veto Counter N: 48 (front); Veto Counter N: 49 (back);  Veto Counter S: 50 (front); Veto Counter S: 51 (back)
@@ -247,19 +268,26 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
       // 0,1 S1; 2,3 S2; 4,5 S3; 6,7 Ssum
       // 8,9 N1; 10,11 N2; 12,13 N3; 14,15 Nsum
       zdc_adc[channel] = zdc_e;
+      if (channel == 8) zdc1_north->Fill(zdc_e);
+      if (channel == 10) zdc2_north->Fill(zdc_e);
     }
     if (channel >= 16 && channel < 48) // SMD
     {
       // SMD Mapping:
       // 0-7 North H1-8; 8-14 North V1-7; 15 North sum
       // 16-23 South H1-8; 24-30 South V1-7; 31 South sum
-      smd_adc[channel - 16] = zdc_e;
+      int smd_channel = channel - 16;
+      smd_adc[smd_channel] = zdc_e;
+      if (smd_channel < 15) smd_north_signals[smd_channel]->Fill(zdc_e);
     }
     if (channel >= 48 && channel < 52) // Veto
     {
       // Veto Mapping:
       // 0 N front; 1 N back; 2 S front; 3 S back
-      veto_adc[channel - 48] = zdc_e;
+      int veto_channel = channel - 48;
+      veto_adc[veto_channel] = zdc_e;
+      if (veto_channel == 0) vetofront_north->Fill(zdc_e);
+      if (veto_channel == 1) vetoback_north->Fill(zdc_e);
     }
   }
 
@@ -273,11 +301,11 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
   if (n_neutron) {CountLRUD("north");}
   if (s_neutron) {CountLRUD("south");}
 
-  // Printing for testing
-  /* for (int i=0; i<32; i++) { */ 
-  /*   std::cout << "smd_adc[" << i << "] = " << smd_adc[i] << std::endl; */ 
-  /* } */ 
-  /* std::cout << Form("n_hor_numhits=%d, n_ver_numhits=%d, s_hor_numhits=%d, s_ver_numhits=%d\n", n_hor_numhits, n_ver_numhits, s_hor_numhits, s_ver_numhits); */ 
+    // Printing for testing
+    /* for (int i=0; i<32; i++) { */ 
+    /*   std::cout << "smd_adc[" << i << "] = " << smd_adc[i] << std::endl; */ 
+    /* } */ 
+    /* std::cout << Form("n_hor_numhits=%d, n_ver_numhits=%d, s_hor_numhits=%d, s_ver_numhits=%d\n", n_hor_numhits, n_ver_numhits, s_hor_numhits, s_ver_numhits); */ 
   /* std::cout << Form("fired_smd_hor_n=%d, fired_smd_ver_n=%d, fired_smd_hor_s=%d, fired_smd_ver_s=%d\n", fired_smd_hor_n, fired_smd_ver_n, fired_smd_hor_s, fired_smd_ver_s); */ 
 
   // FILLING OUT THE HISTOGRAMS
@@ -290,6 +318,32 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
     smd_xy_north->Fill(smd_pos[1], smd_pos[0]);
     //std::cout<<" smd sum ver north = "<<smd_sum[1]<<std::endl;
     //std::cout<<" smd sum hor north = "<<smd_sum[0]<<std::endl;
+
+    // SMD hist multiplicities
+    int minSMDcut = 40; // ADC minimum
+    for ( int i = 0; i < 8; i++)
+    {
+      if ( smd_adc[i] > minSMDcut ) {smd_hor_north_neutron_multiplicity->Fill(i);} 
+    }
+    for ( int i = 0; i < 7; i++)
+    {
+      if ( smd_adc[i + 8] > minSMDcut ) {smd_ver_north_neutron_multiplicity->Fill(i);} 
+    }
+
+    // Separate spin up and down centroid positions
+    float north_x = smd_pos[1];
+    float north_y = smd_pos[0];
+    int blueSpin = spinPatternBlue[bunchNum];
+    if (blueSpin == 1)
+    {
+      smd_hor_north_up->Fill(north_y);
+      smd_ver_north_up->Fill(north_x);
+    }
+    if (blueSpin == -1)
+    {
+      smd_hor_north_down->Fill(north_y);
+      smd_ver_north_down->Fill(north_x);
+    }
   }
 
   if (s_neutron)
@@ -387,7 +441,48 @@ int SmdHistGen::ResetEvent(PHCompositeNode *topNode)
   y_sqasym_south->SetPointError(0, y_sqasym_LR_south_err, y_sqasym_UD_south_err);
 
 
+  // Plot some histograms
+  gStyle->SetOptStat(0);
+  TCanvas* c1 = new TCanvas("c1", "c1", 800, 800);
+  c1->cd();
+  smd_hor_north->SetLineColor(kBlack);
+  smd_hor_north_up->SetLineColor(kBlue);
+  smd_hor_north_down->SetLineColor(kRed);
+  smd_hor_north->Draw();
+  smd_hor_north_up->Draw("same");
+  smd_hor_north_down->Draw("same");
+  TLegend* leg = new TLegend(0.7, 0.7, 0.9, 0.9);
+  leg->AddEntry(smd_hor_north, "Total");
+  leg->AddEntry(smd_hor_north_up, "Spin up");
+  leg->AddEntry(smd_hor_north_down, "Spin down");
+  leg->Draw();
+  c1->Update();
+  c1->SaveAs("smd_hor_north_42200.png");
+  delete leg;
 
+  smd_ver_north->SetLineColor(kBlack);
+  smd_ver_north_up->SetLineColor(kBlue);
+  smd_ver_north_down->SetLineColor(kRed);
+  smd_ver_north->Draw();
+  smd_ver_north_up->Draw("same");
+  smd_ver_north_down->Draw("same");
+  leg = new TLegend(0.7, 0.7, 0.9, 0.9);
+  leg->AddEntry(smd_ver_north, "Total");
+  leg->AddEntry(smd_ver_north_up, "Spin up");
+  leg->AddEntry(smd_ver_north_down, "Spin down");
+  leg->Draw();
+  c1->Update();
+  c1->SaveAs("smd_ver_north_42200.png");
+  delete leg;
+
+  smd_hor_north_neutron_multiplicity->Draw();
+  c1->Update();
+  c1->SaveAs("smd_hor_neutron_hits_42200.png");
+  smd_ver_north_neutron_multiplicity->Draw();
+  c1->Update();
+  c1->SaveAs("smd_ver_neutron_hits_42200.png");
+
+  // save asymmetry graphs
   outfile->cd();
   b_asymLR_north->Write();
   b_asymUD_north->Write();
@@ -593,14 +688,22 @@ void SmdHistGen::CompSumSmd() //compute 'digital' sum
 
 void SmdHistGen::CountSMDHits()
 {
-  int minSMDcut = 20; // ADC minimum
+  int minSMDcut = 40; // ADC minimum
   for ( int i = 0; i < 8; i++)
   {
-    if ( smd_adc[i] > minSMDcut ) {n_hor_numhits ++;} 
+    if ( smd_adc[i] > minSMDcut )
+    {
+      n_hor_numhits ++;
+      smd_hor_north_total_multiplicity->Fill(i);
+    }
   }
   for ( int i = 0; i < 7; i++)
   {
-    if ( smd_adc[i + 8] > minSMDcut ) {n_ver_numhits ++;} 
+    if ( smd_adc[i + 8] > minSMDcut )
+    {
+      n_ver_numhits ++;
+      smd_ver_north_total_multiplicity->Fill(i);
+    }
   }
 
   for ( int i = 0; i < 8; i++)
@@ -619,10 +722,11 @@ bool SmdHistGen::NeutronSelection(std::string which)
   // veto ADC<200
   // ZDC2 ADC>20 (use high gain channels)
   // num SMD hits > 1
-  int frontveto, backveto, zdc2, smdhitshor, smdhitsver;
+  int frontveto, backveto, zdc1, zdc2, smdhitshor, smdhitsver;
   if (which == "north") {
     frontveto = veto_adc[0];
     backveto = veto_adc[1];
+    zdc1 = zdc_adc[8];
     zdc2 = zdc_adc[10];
     smdhitshor = n_hor_numhits;
     smdhitsver = n_ver_numhits;
@@ -630,6 +734,7 @@ bool SmdHistGen::NeutronSelection(std::string which)
   else if (which == "south") {
     frontveto = veto_adc[2];
     backveto = veto_adc[3];
+    zdc1 = zdc_adc[0];
     zdc2 = zdc_adc[2];
     smdhitshor = s_hor_numhits;
     smdhitsver = s_ver_numhits;
@@ -639,8 +744,9 @@ bool SmdHistGen::NeutronSelection(std::string which)
     return false;
   }
 
-  if (frontveto > 200) {return false;}
-  if (backveto > 200) {return false;}
+  if (frontveto > 150) {return false;}
+  if (backveto > 150) {return false;}
+  if (zdc1 < 65) {return false;}
   if (zdc2 < 20) {return false;}
   if (smdhitshor < 2) {return false;}
   if (smdhitsver < 2) {return false;}
