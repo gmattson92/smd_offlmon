@@ -65,16 +65,20 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
   {
     smd_north_signals[i] = new TH1F(Form("smd_north_signal_%d", i), Form("North SMD Channel %d", i), 256, 0, 500);
   }
+  smd_north_waveforms = new TH2F("smd_north_waveforms", "North SMD Waveform;Time;Max ADC", 16, -0.5, 15.5, 100, 0.0, 500.0);
   zdc1_north = new TH1F("zdc1_north", "North ZDC1 Signal;ADC;Counts", 256, 0, 500);
   zdc2_north = new TH1F("zdc2_north", "North ZDC2 Signal;ADC;Counts", 256, 0, 500);
+  zdc_north_waveforms = new TH2F("zdc_north_waveforms", "North ZDC Waveform;Time;Max ADC", 16, -0.5, 15.5, 100, 0.0, 500.0);
   vetofront_north = new TH1F("vetofront_north", "North Front Veto Signal;ADC;Counts", 256, 0, 500);
   vetoback_north = new TH1F("vetoback_north", "North Back Veto Signal;ADC;Counts", 256, 0, 500);
-  smd_hor_north = new TH1F("smd_hor_north", "Beam centroid distribution, SMD North y", 296, -5.92, 5.92);
-  smd_ver_north = new TH1F("smd_ver_north", "Beam centroid distribution, SMD North x", 220, -5.5, 5.5);
-  smd_hor_north_up = new TH1F("smd_hor_north_up", "Beam centroid distribution, SMD North y, Spin Up", 296, -5.92, 5.92);
-  smd_ver_north_up = new TH1F("smd_ver_north_up", "Beam centroid distribution, SMD North x, Spin Up", 220, -5.5, 5.5);
-  smd_hor_north_down = new TH1F("smd_hor_north_down", "Beam centroid distribution, SMD North y, Spin Down", 296, -5.92, 5.92);
-  smd_ver_north_down = new TH1F("smd_ver_north_down", "Beam centroid distribution, SMD North x, Spin Down", 220, -5.5, 5.5);
+  veto_north_waveforms = new TH2F("veto_north_waveforms", "North Veto Waveform;Time;Max ADC", 16, -0.5, 15.5, 100, 0.0, 500.0);
+  int nbins_xy = 50;
+  smd_hor_north = new TH1F("smd_hor_north", "Beam centroid distribution, SMD North y", nbins_xy, -5.92, 5.92);
+  smd_ver_north = new TH1F("smd_ver_north", "Beam centroid distribution, SMD North x", nbins_xy, -5.5, 5.5);
+  smd_hor_north_up = new TH1F("smd_hor_north_up", "Beam centroid distribution, SMD North y, Spin Up", nbins_xy, -5.92, 5.92);
+  smd_ver_north_up = new TH1F("smd_ver_north_up", "Beam centroid distribution, SMD North x, Spin Up", nbins_xy, -5.5, 5.5);
+  smd_hor_north_down = new TH1F("smd_hor_north_down", "Beam centroid distribution, SMD North y, Spin Down", nbins_xy, -5.92, 5.92);
+  smd_ver_north_down = new TH1F("smd_ver_north_down", "Beam centroid distribution, SMD North x, Spin Down", nbins_xy, -5.5, 5.5);
   smd_sum_hor_north = new TH1F ("smd_sum_hor_north", "SMD North y", 512, 0, 2048);
   smd_sum_ver_north = new TH1F ("smd_sum_ver_north", "SMD North x", 512, 0, 2048);
   // south smd 
@@ -259,7 +263,6 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
     // Channel mapping: ZDCS: 0-8; ZDCN: 9-15; SMDN: 16-31; SMDS: 32-47; Veto Counter N: 48 (front); Veto Counter N: 49 (back);  Veto Counter S: 50 (front); Veto Counter S: 51 (back)
     float zdc_e = towerinfosZDC->get_tower_at_channel(channel)->get_energy();
     float zdc_t = towerinfosZDC->get_tower_at_channel(channel)->get_time();
-    if (zdc_t) {}
 
     if (channel < 16) // ZDC
     {
@@ -268,8 +271,10 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
       // 0,1 S1; 2,3 S2; 4,5 S3; 6,7 Ssum
       // 8,9 N1; 10,11 N2; 12,13 N3; 14,15 Nsum
       zdc_adc[channel] = zdc_e;
+      zdc_time[channel] = zdc_t;
       if (channel == 8) zdc1_north->Fill(zdc_e);
       if (channel == 10) zdc2_north->Fill(zdc_e);
+      if (channel==8 || channel==10 || channel==12) zdc_north_waveforms->Fill(zdc_t, zdc_e);
     }
     if (channel >= 16 && channel < 48) // SMD
     {
@@ -278,7 +283,12 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
       // 16-23 South H1-8; 24-30 South V1-7; 31 South sum
       int smd_channel = channel - 16;
       smd_adc[smd_channel] = zdc_e;
-      if (smd_channel < 15) smd_north_signals[smd_channel]->Fill(zdc_e);
+      smd_time[smd_channel] = zdc_t;
+      if (smd_channel < 15)
+      {
+	smd_north_signals[smd_channel]->Fill(zdc_e);
+	smd_north_waveforms->Fill(zdc_t, zdc_e);
+      }
     }
     if (channel >= 48 && channel < 52) // Veto
     {
@@ -286,8 +296,10 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
       // 0 N front; 1 N back; 2 S front; 3 S back
       int veto_channel = channel - 48;
       veto_adc[veto_channel] = zdc_e;
+      veto_time[veto_channel] = zdc_t;
       if (veto_channel == 0) vetofront_north->Fill(zdc_e);
       if (veto_channel == 1) vetoback_north->Fill(zdc_e);
+      if (veto_channel < 2) veto_north_waveforms->Fill(zdc_t, zdc_e);
     }
   }
 
@@ -457,7 +469,7 @@ int SmdHistGen::ResetEvent(PHCompositeNode *topNode)
   leg->AddEntry(smd_hor_north_down, "Spin down");
   leg->Draw();
   c1->Update();
-  c1->SaveAs("smd_hor_north_42200.png");
+  c1->SaveAs("plots/smd_hor_north_42200.png");
   delete leg;
 
   smd_ver_north->SetLineColor(kBlack);
@@ -472,15 +484,28 @@ int SmdHistGen::ResetEvent(PHCompositeNode *topNode)
   leg->AddEntry(smd_ver_north_down, "Spin down");
   leg->Draw();
   c1->Update();
-  c1->SaveAs("smd_ver_north_42200.png");
+  c1->SaveAs("plots/smd_ver_north_42200.png");
   delete leg;
 
   smd_hor_north_neutron_multiplicity->Draw();
   c1->Update();
-  c1->SaveAs("smd_hor_neutron_hits_42200.png");
+  c1->SaveAs("plots/smd_hor_neutron_hits_42200.png");
   smd_ver_north_neutron_multiplicity->Draw();
   c1->Update();
-  c1->SaveAs("smd_ver_neutron_hits_42200.png");
+  c1->SaveAs("plots/smd_ver_neutron_hits_42200.png");
+
+  smd_north_waveforms->Draw("COLZ");
+  gPad->SetLogz();
+  c1->Update();
+  c1->SaveAs("plots/smd_waveforms_42200.png");
+  zdc_north_waveforms->Draw("COLZ");
+  gPad->SetLogz();
+  c1->Update();
+  c1->SaveAs("plots/zdc_waveforms_42200.png");
+  veto_north_waveforms->Draw("COLZ");
+  gPad->SetLogz();
+  c1->Update();
+  c1->SaveAs("plots/veto_waveforms_42200.png");
 
   // save asymmetry graphs
   outfile->cd();
@@ -693,26 +718,34 @@ void SmdHistGen::CountSMDHits()
   {
     if ( smd_adc[i] > minSMDcut )
     {
-      n_hor_numhits ++;
-      smd_hor_north_total_multiplicity->Fill(i);
+      // timing requirement
+      if (smd_time[i]>=9 && smd_time[i]<=12)
+      {
+        n_hor_numhits ++;
+        smd_hor_north_total_multiplicity->Fill(i);
+      }
     }
   }
   for ( int i = 0; i < 7; i++)
   {
     if ( smd_adc[i + 8] > minSMDcut )
     {
-      n_ver_numhits ++;
-      smd_ver_north_total_multiplicity->Fill(i);
+      // timing requirement
+      if (smd_time[i+8]>=9 && smd_time[i+8]<=12)
+      {
+        n_ver_numhits ++;
+	smd_ver_north_total_multiplicity->Fill(i);
+      }
     }
   }
 
   for ( int i = 0; i < 8; i++)
   {
-    if ( smd_adc[i + 16] > minSMDcut ) {s_hor_numhits++;} 
+    if ( smd_adc[i + 16] > minSMDcut && smd_time[i+16]>=6 && smd_time[i+16]<=12 ) {s_hor_numhits++;} 
   }
   for ( int i = 0; i < 7; i++)
   {
-    if ( smd_adc[i + 24] > minSMDcut ) {s_ver_numhits++;} 
+    if ( smd_adc[i + 24] > minSMDcut && smd_time[i+24]>=6 && smd_time[i+24]<=12 ) {s_hor_numhits++;} 
   }
 }
 
@@ -722,12 +755,18 @@ bool SmdHistGen::NeutronSelection(std::string which)
   // veto ADC<200
   // ZDC2 ADC>20 (use high gain channels)
   // num SMD hits > 1
+  // all hits in correct time window (north ZDC&Veto 5-8, north SMD 9-12)
   int frontveto, backveto, zdc1, zdc2, smdhitshor, smdhitsver;
+  int frontveto_t, backveto_t, zdc1_t, zdc2_t;
   if (which == "north") {
     frontveto = veto_adc[0];
     backveto = veto_adc[1];
     zdc1 = zdc_adc[8];
     zdc2 = zdc_adc[10];
+    frontveto_t = veto_time[0];
+    backveto_t = veto_time[1];
+    zdc1_t = zdc_time[8];
+    zdc2_t = zdc_time[10];
     smdhitshor = n_hor_numhits;
     smdhitsver = n_ver_numhits;
   }
@@ -736,6 +775,10 @@ bool SmdHistGen::NeutronSelection(std::string which)
     backveto = veto_adc[3];
     zdc1 = zdc_adc[0];
     zdc2 = zdc_adc[2];
+    frontveto_t = veto_time[2];
+    backveto_t = veto_time[3];
+    zdc1_t = zdc_time[0];
+    zdc2_t = zdc_time[2];
     smdhitshor = s_hor_numhits;
     smdhitsver = s_ver_numhits;
   }
@@ -744,10 +787,17 @@ bool SmdHistGen::NeutronSelection(std::string which)
     return false;
   }
 
+  // timing requirement
+  if (zdc1_t<5 || zdc1_t>8) {return false;}
+  if (zdc2_t<5 || zdc1_t>8) {return false;}
+  if (frontveto_t<5 || frontveto_t>8) {return false;}
+  if (backveto_t<5 || backveto_t>8) {return false;}
+  // ADC requirements
   if (frontveto > 150) {return false;}
   if (backveto > 150) {return false;}
   if (zdc1 < 65) {return false;}
   if (zdc2 < 20) {return false;}
+  // SMD hit requirement
   if (smdhitshor < 2) {return false;}
   if (smdhitsver < 2) {return false;}
   // passed all cuts

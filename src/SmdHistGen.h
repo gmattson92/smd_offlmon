@@ -82,10 +82,13 @@ class SmdHistGen : public SubsysReco
   TH1 *smd_hor_north_neutron_multiplicity = nullptr;
   TH1 *smd_ver_north_neutron_multiplicity = nullptr;
   TH1* smd_north_signals[15] = {nullptr};
+  TH2* smd_north_waveforms = nullptr;
   TH1 *zdc1_north = nullptr;
   TH1 *zdc2_north = nullptr;
+  TH2* zdc_north_waveforms = nullptr;
   TH1 *vetofront_north = nullptr;
   TH1 *vetoback_north = nullptr;
+  TH2* veto_north_waveforms = nullptr;
   TH1 *smd_hor_north = nullptr;
   TH1 *smd_ver_north = nullptr;
   TH1 *smd_hor_north_up = nullptr;
@@ -217,6 +220,9 @@ class SmdHistGen : public SubsysReco
   float smd_adc[32] = {0.0f};
   float zdc_adc[16] = {0.0f};
   float veto_adc[4] = {0.0f};
+  float smd_time[32] = {0.0f};
+  float zdc_time[16] = {0.0f};
+  float veto_time[4] = {0.0f};
   float smd_sum[4] = {0.0f}; 
   float smd_pos[4] = {0.0f};
 
