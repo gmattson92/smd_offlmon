@@ -9,6 +9,14 @@
 #include <phool/PHObject.h>        // for PHObject
 #include <phool/getClass.h>
 
+//to analyse PRDF
+#include <caloreco/CaloWaveformFitting.h>
+#include <ffarawobjects/CaloPacketContainerv1.h>
+#include <ffarawobjects/CaloPacket.h>
+/* #include <Event/Event.h> */
+/* #include <Event/EventTypes.h> */
+/* #include <Event/packet.h> */
+
 //to analyse DST
 #include <calobase/TowerInfoContainer.h>
 #include <calobase/TowerInfo.h>
@@ -31,11 +39,11 @@
 
 
 //____________________________________________________________________________..
-SmdHistGen::SmdHistGen(const std::string &name, const int runnumber, const char* outname):
+SmdHistGen::SmdHistGen(const std::string& name, const std::string& which_mode, const char* outname):
   SubsysReco(name),
+  mode(which_mode),
   outfilename(outname),
-  outfile(nullptr),
-  runNum(runnumber)
+  outfile(nullptr)
 {
   std::cout << "SmdHistGen::SmdHistGen(const std::string &name) Calling ctor" << std::endl;
 }
@@ -210,12 +218,6 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
   */
   // done reading gains from file
 
-  // Get run number
-  std::cout << "Run number is " << runNum << std::endl;
-
-  // Get spin pattern info
-  GetSpinPatterns();
-
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -223,6 +225,25 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
 int SmdHistGen::InitRun(PHCompositeNode *topNode)
 {
   std::cout << "SmdHistGen::InitRun(PHCompositeNode *topNode) Initializing for Run XXX" << std::endl;
+
+  // Get run number
+  runHeader = findNode::getClass<RunHeaderv1>(topNode, "RunHeader");
+  if (!runHeader)
+  {
+    std::cout << PHWHERE << ":: Missing RunHeader! Exiting!" << std::endl;
+    exit(1);
+  }
+  runNum = runHeader->get_RunNumber();
+  std::cout << "Run number is " << runNum << std::endl;
+
+  // Get spin pattern info
+  int spinDB_status = GetSpinPatterns();
+  if (spinDB_status)
+  {
+    std::cout << PHWHERE << ":: Run number " << runNum << " not found in spin DB! Exiting!" << std::endl;
+    /* exit(1); */
+  }
+
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -232,6 +253,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
   /* std::cout << "SmdHistGen::process_event(PHCompositeNode *topNode) Processing Event" << std::endl; */
   
   evtctr++;
+  if (evtctr%10000 == 0) std::cout << "Event " << evtctr << std::endl;
 
   // Get the bunch number for this event
   Gl1Packetv1* gl1 = findNode::getClass<Gl1Packetv1>(topNode, "GL1Packet");
@@ -249,59 +271,9 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
   }
   
   // Get the ADC values
-  TowerInfoContainer* towerinfosZDC;
   towerinfosZDC = findNode::getClass<TowerInfoContainer>(topNode, "TOWERS_ZDC");
-  if(!towerinfosZDC)
-    {
-      std::cout << PHWHERE << ":: No TOWERS_ZDC!" << std::endl; exit(1);
-    }
-
-  int nchannels_zdc = towerinfosZDC->size();
-  /* std::cout << "towerinfosZDC has " << nchannels_zdc << " channels" << std::endl; */
-  for (int channel = 0; channel < nchannels_zdc;channel++)
-  {
-    // Channel mapping: ZDCS: 0-8; ZDCN: 9-15; SMDN: 16-31; SMDS: 32-47; Veto Counter N: 48 (front); Veto Counter N: 49 (back);  Veto Counter S: 50 (front); Veto Counter S: 51 (back)
-    float zdc_e = towerinfosZDC->get_tower_at_channel(channel)->get_energy();
-    float zdc_t = towerinfosZDC->get_tower_at_channel(channel)->get_time();
-
-    if (channel < 16) // ZDC
-    {
-      // ZDC Mapping:
-      // even high gain, odd low gain
-      // 0,1 S1; 2,3 S2; 4,5 S3; 6,7 Ssum
-      // 8,9 N1; 10,11 N2; 12,13 N3; 14,15 Nsum
-      zdc_adc[channel] = zdc_e;
-      zdc_time[channel] = zdc_t;
-      if (channel == 8) zdc1_north->Fill(zdc_e);
-      if (channel == 10) zdc2_north->Fill(zdc_e);
-      if (channel==8 || channel==10 || channel==12) zdc_north_waveforms->Fill(zdc_t, zdc_e);
-    }
-    if (channel >= 16 && channel < 48) // SMD
-    {
-      // SMD Mapping:
-      // 0-7 North H1-8; 8-14 North V1-7; 15 North sum
-      // 16-23 South H1-8; 24-30 South V1-7; 31 South sum
-      int smd_channel = channel - 16;
-      smd_adc[smd_channel] = zdc_e;
-      smd_time[smd_channel] = zdc_t;
-      if (smd_channel < 15)
-      {
-	smd_north_signals[smd_channel]->Fill(zdc_e);
-	smd_north_waveforms->Fill(zdc_t, zdc_e);
-      }
-    }
-    if (channel >= 48 && channel < 52) // Veto
-    {
-      // Veto Mapping:
-      // 0 N front; 1 N back; 2 S front; 3 S back
-      int veto_channel = channel - 48;
-      veto_adc[veto_channel] = zdc_e;
-      veto_time[veto_channel] = zdc_t;
-      if (veto_channel == 0) vetofront_north->Fill(zdc_e);
-      if (veto_channel == 1) vetoback_north->Fill(zdc_e);
-      if (veto_channel < 2) veto_north_waveforms->Fill(zdc_t, zdc_e);
-    }
-  }
+  packetsZDC = findNode::getClass<CaloPacketContainerv1>(topNode, "ZDCPackets");
+  GetAdcs();
 
   // call the functions
   CompSmdAdc();
@@ -556,7 +528,7 @@ int SmdHistGen::ResetEvent(PHCompositeNode *topNode)
    std::cout << "SmdHistGen::Print(const std::string &what) const Printing info for " << what << std::endl;
  }
 
-void SmdHistGen::GetSpinPatterns()
+int SmdHistGen::GetSpinPatterns()
 {
   // Get the spin patterns from the spin DB
 
@@ -590,25 +562,121 @@ void SmdHistGen::GetSpinPatterns()
   }
   std::cout << "]" << std::endl;
 
-  if (false) 
+  if (spinPatternYellow[0] == -999) {return 1;}
+  return 0;
+}
+
+void SmdHistGen::GetAdcs() // populate the adc arrays
+{
+  if (mode == "dst") {GetAdcsDst();}
+  else if (mode == "raw") {GetAdcsRaw();}
+  else
   {
-    // for testing -- if we couldn't find the spin pattern, fill it with a dummy pattern
-    // +-+-+-+- ...
-    std::cout << "Could not find spin pattern packet for blue beam! Using dummy pattern" << std::endl;
-    for (int i = 0; i < NBUNCHES; i++) 
+    std::cout << PHWHERE << ":: invalid mode=" << mode << " ... Exiting!" << std::endl;
+    exit(1);
+  }
+}
+
+void SmdHistGen::GetAdcsDst()
+{
+  if(!towerinfosZDC)
+  {
+    std::cout << PHWHERE << ":: No TOWERS_ZDC!" << std::endl; exit(1);
+  }
+
+  int nchannels_zdc = towerinfosZDC->size();
+  /* std::cout << "towerinfosZDC has " << nchannels_zdc << " channels" << std::endl; */
+  for (int channel = 0; channel < nchannels_zdc;channel++)
+  {
+    // Channel mapping: ZDCS: 0-8; ZDCN: 9-15; SMDN: 16-31; SMDS: 32-47; Veto Counter N: 48 (front); Veto Counter N: 49 (back);  Veto Counter S: 50 (front); Veto Counter S: 51 (back)
+    float zdc_e = towerinfosZDC->get_tower_at_channel(channel)->get_energy();
+    float zdc_t = towerinfosZDC->get_tower_at_channel(channel)->get_time();
+
+    if (channel < 16) // ZDC
     {
-      int mod = i%2;
-      if (mod == 0) spinPatternBlue[i] = 1;
-      else spinPatternBlue[i] = -1;
+      // ZDC Mapping:
+      // even high gain, odd low gain
+      // 0,1 S1; 2,3 S2; 4,5 S3; 6,7 Ssum
+      // 8,9 N1; 10,11 N2; 12,13 N3; 14,15 Nsum
+      zdc_adc[channel] = zdc_e;
+      zdc_time[channel] = zdc_t;
+      if (channel == 8) zdc1_north->Fill(zdc_e);
+      if (channel == 10) zdc2_north->Fill(zdc_e);
+      if (channel==8 || channel==10 || channel==12) zdc_north_waveforms->Fill(zdc_t, zdc_e);
     }
-    // for testing -- if we couldn't find the spin pattern, fill it with a dummy pattern
-    // ++--++-- ,,,
-    std::cout << "Could not find spin pattern packet for yellow beam! Using dummy pattern" << std::endl;
-    for (int i = 0; i < NBUNCHES; i++)
+    if (channel >= 16 && channel < 48) // SMD
     {
-      int mod = i%4;
-      if (mod == 0 || mod ==1) spinPatternYellow[i] = 1;
-      else spinPatternYellow[i] = -1;
+      // SMD Mapping:
+      // 0-7 North H1-8; 8-14 North V1-7; 15 North sum
+      // 16-23 South H1-8; 24-30 South V1-7; 31 South sum
+      int smd_channel = channel - 16;
+      smd_adc[smd_channel] = zdc_e;
+      smd_time[smd_channel] = zdc_t;
+      if (smd_channel < 15)
+      {
+	smd_north_signals[smd_channel]->Fill(zdc_e);
+	smd_north_waveforms->Fill(zdc_t, zdc_e);
+      }
+    }
+    if (channel >= 48 && channel < 52) // Veto
+    {
+      // Veto Mapping:
+      // 0 N front; 1 N back; 2 S front; 3 S back
+      int veto_channel = channel - 48;
+      veto_adc[veto_channel] = zdc_e;
+      veto_time[veto_channel] = zdc_t;
+      if (veto_channel == 0) vetofront_north->Fill(zdc_e);
+      if (veto_channel == 1) vetoback_north->Fill(zdc_e);
+      if (veto_channel < 2) veto_north_waveforms->Fill(zdc_t, zdc_e);
+    }
+  }
+}
+
+void SmdHistGen::GetAdcsRaw()
+{
+  if(!packetsZDC)
+  {
+    std::cout << PHWHERE << ":: No ZDCPackets!" << std::endl; exit(1);
+  }
+
+  /* packetsZDC->identify(); */
+  CaloPacket *packetZDC = packetsZDC->getPacketbyId(packet_smd);
+  /* packetZDC->identify(); */
+  
+  int Nchannels = std::min(52, packetZDC->iValue(0, "CHANNELS"));
+  for (int channel = 0; channel < Nchannels; channel++)
+  {
+    std::vector<float> resultFast = anaWaveformFast(packetZDC, channel);  // fast waveform fitting
+    float zdc_e = resultFast.at(0);
+    float zdc_t = resultFast.at(1);
+
+    if (channel < 16) // ZDC
+    {
+      zdc_adc[channel] = zdc_e;
+      zdc_time[channel] = zdc_t;
+      if (channel == 8) zdc1_north->Fill(zdc_e);
+      if (channel == 10) zdc2_north->Fill(zdc_e);
+      if (channel==8 || channel==10 || channel==12) zdc_north_waveforms->Fill(zdc_t, zdc_e);
+    }
+    if (channel >= 16 && channel < 48) // SMD
+    {
+      int smd_channel = channel - 16;
+      smd_adc[smd_channel] = zdc_e;
+      smd_time[smd_channel] = zdc_t;
+      if (smd_channel < 15)
+      {
+	smd_north_signals[smd_channel]->Fill(zdc_e);
+	smd_north_waveforms->Fill(zdc_t, zdc_e);
+      }
+    }
+    if (channel >= 48 && channel < 52) // Veto
+    {
+      int veto_channel = channel - 48;
+      veto_adc[veto_channel] = zdc_e;
+      veto_time[veto_channel] = zdc_t;
+      if (veto_channel == 0) vetofront_north->Fill(zdc_e);
+      if (veto_channel == 1) vetoback_north->Fill(zdc_e);
+      if (veto_channel < 2) veto_north_waveforms->Fill(zdc_t, zdc_e);
     }
   }
 }
@@ -758,6 +826,7 @@ bool SmdHistGen::NeutronSelection(std::string which)
   // all hits in correct time window (north ZDC&Veto 5-8, north SMD 9-12)
   int frontveto, backveto, zdc1, zdc2, smdhitshor, smdhitsver;
   int frontveto_t, backveto_t, zdc1_t, zdc2_t;
+  float smd_x, smd_y;
   if (which == "north") {
     frontveto = veto_adc[0];
     backveto = veto_adc[1];
@@ -769,6 +838,8 @@ bool SmdHistGen::NeutronSelection(std::string which)
     zdc2_t = zdc_time[10];
     smdhitshor = n_hor_numhits;
     smdhitsver = n_ver_numhits;
+    smd_x = smd_pos[1];
+    smd_y = smd_pos[0];
   }
   else if (which == "south") {
     frontveto = veto_adc[2];
@@ -781,6 +852,8 @@ bool SmdHistGen::NeutronSelection(std::string which)
     zdc2_t = zdc_time[2];
     smdhitshor = s_hor_numhits;
     smdhitsver = s_ver_numhits;
+    smd_x = smd_pos[3];
+    smd_y = smd_pos[2];
   }
   else {
     std::cout << "NeutronSelection: invalid string " << which << std::endl;
@@ -800,6 +873,10 @@ bool SmdHistGen::NeutronSelection(std::string which)
   // SMD hit requirement
   if (smdhitshor < 2) {return false;}
   if (smdhitsver < 2) {return false;}
+  // Radial position cut
+  float r = sqrt(smd_x*smd_x + smd_y*smd_y);
+  if (r > 4) {return false;}
+  if (r < 0.5) {return false;}
   // passed all cuts
   return true;
 }
@@ -1057,5 +1134,23 @@ void SmdHistGen::CompSqAsym() // compute LR and UD square-root asymmetries; the 
 	y_sqasym_UD_south_err = err_terma * err_termb;
     }
     else { y_sqasym_UD_south = 0.0; }
+}
+
+std::vector<float> SmdHistGen::anaWaveformFast(CaloPacket *p, const int channel)
+{
+  std::vector<float> waveform;
+  for (int s = 0; s < p->iValue(0, "SAMPLES"); s++)
+  {
+    waveform.push_back(p->iValue(s, channel));
+  }
+  std::vector<std::vector<float>> multiple_wfs;
+  multiple_wfs.push_back(waveform);
+
+  std::vector<std::vector<float>> fitresults_zdc;
+  fitresults_zdc = WaveformProcessingFast->calo_processing_fast(multiple_wfs);
+
+  std::vector<float> result;
+  result = fitresults_zdc.at(0);
+  return result;
 }
 

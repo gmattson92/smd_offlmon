@@ -7,7 +7,6 @@
 
 #include <string>
 #include <vector>
-#include <TRandom3.h>
 
 class PHCompositeNode;
 class TFile;
@@ -15,13 +14,18 @@ class TTree;
 class TH1;
 class TH2;
 class TGraphErrors;
-class TRandom;
+/* class Packet; */
+class CaloWaveformFitting;
+class RunHeaderv1;
+class TowerInfoContainer;
+class CaloPacketContainerv1;
+class CaloPacket;
 
 class SmdHistGen : public SubsysReco
 {
  public:
 
-  SmdHistGen(const std::string &name = "SmdHistGen", const int runnumber = 0, const char* outname = "SmdHists.root");
+  SmdHistGen(const std::string &name = "SmdHistGen", const std::string& which_mode = "dst", const char* outname = "SmdHists.root");
 
   ~SmdHistGen() override;
 
@@ -59,21 +63,38 @@ class SmdHistGen : public SubsysReco
   void Print(const std::string &what = "ALL") const override;
 
  private:
+  std::string mode;
   const char* outfilename;
   TFile *outfile;
   int evtctr = 0;
+  CaloWaveformFitting *WaveformProcessingFast = nullptr;
+  RunHeaderv1 *runHeader = nullptr;
+  TowerInfoContainer *towerinfosZDC = nullptr;
+  CaloPacketContainerv1 *packetsZDC = nullptr;
 
-  void GetSpinPatterns();
+  void GetRunNumber();
+  int GetSpinPatterns();
+  void GetAdcs();
+  void GetAdcsDst();
+  void GetAdcsRaw();
   void CompSmdAdc();
   void CompSmdPos();
   void CompSumSmd();
   void CountSMDHits();
   bool NeutronSelection(std::string which);
   void CountLRUD(std::string which);
+  void CountPhi(std::string which);
   void CompAsym();
   void CompSqAsym();
+  void CompAsymPhi();
+  std::vector<float> anaWaveformFast(CaloPacket *p, const int channel);
 
   double PI = 3.14159;
+  // packet id numbers
+  const int packet_GL1 = 14001;
+  const int packet_blue = 14902;
+  const int packet_yellow = 14903;
+  const int packet_smd = 12001;
 
   // Histograms and graphs
   // north smd
@@ -105,6 +126,11 @@ class SmdHistGen : public SubsysReco
   // smd hit 2D positions
   TH2 *smd_xy_north = nullptr;
   TH2 *smd_xy_south = nullptr;
+
+  // raw asymmetries
+  TH1 *raw_north_up = nullptr;
+  TH1 *raw_north_down = nullptr;
+  TH1 *raw_north = nullptr;
 
   // simple asymmetries
   TGraphErrors *b_asymLR_north = nullptr;
