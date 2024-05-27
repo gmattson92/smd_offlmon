@@ -4,7 +4,7 @@
 #include <fun4all/Fun4AllUtils.h>
 #include <fun4all/Fun4AllInputManager.h>
 #include <fun4all/Fun4AllDstInputManager.h>
-/* #include <fun4allraw/Fun4AllPrdfInputManager.h> */
+#include <fun4allraw/Fun4AllPrdfInputManager.h>
 
 #include <TString.h>
 
