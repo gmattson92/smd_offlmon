@@ -127,10 +127,35 @@ void plot_xy(TCanvas* c, TH2* northxy, TH2* southxy, TH1** northx, TH1** southx)
     c->Update();
 }
 
+void plot_multiplicity(TCanvas* c, TH1** hists) {
+    c->Clear();
+    gStyle->SetOptStat(0);
+    c->Divide(2, 2, 0.025, 0.025);
+
+    c->cd(1);
+    hists[0]->Draw();
+    c->cd(2);
+    hists[1]->Draw();
+    c->cd(3);
+    hists[2]->Draw();
+    c->cd(4);
+    hists[3]->Draw();
+}
+
 void plot_asym(const char* inname, std::string outname) {
     std::string outname_start = outname + "(";
     std::string outname_end = outname + ")";
     TFile* f = new TFile(inname, "READ");
+    TCanvas* c1 = new TCanvas("c1", "c1", 800, 450);
+
+    // hit multiplicities
+    TH1F* h_hor_north_multiplicity = (TH1F*)f->Get("smd_hor_north_multiplicity");
+    TH1F* h_ver_north_multiplicity = (TH1F*)f->Get("smd_ver_north_multiplicity");
+    TH1F* h_hor_south_multiplicity = (TH1F*)f->Get("smd_hor_south_multiplicity");
+    TH1F* h_ver_south_multiplicity = (TH1F*)f->Get("smd_ver_south_multiplicity");
+    TH1* multiplicities[] = {h_hor_north_multiplicity, h_ver_north_multiplicity, h_hor_south_multiplicity, h_ver_south_multiplicity};
+    plot_multiplicity(c1, multiplicities);
+    c1->SaveAs(outname_start.c_str());
 
     // beam centroid xy positions
     TH2F* h_xy_north = (TH2F*)f->Get("smd_xy_neutron_north");
@@ -139,17 +164,10 @@ void plot_asym(const char* inname, std::string outname) {
     TH1F* h_ver_north_down = (TH1F*)f->Get("smd_ver_north_down");
     TH1F* h_ver_south_up = (TH1F*)f->Get("smd_ver_south_up");
     TH1F* h_ver_south_down = (TH1F*)f->Get("smd_ver_south_down");
-    TCanvas* c1 = new TCanvas("c1", "c1", 800, 450);
     TH1* northx[] = {h_ver_north_up, h_ver_north_down};
     TH1* southx[] = {h_ver_south_up, h_ver_south_down};
-    /* for (int i=0; i<2; i++) { */
-	/* std::cout << "northx[" << i << "] = " << northx[i] << " : " << std::endl; */
-	/* northx[i]->Print(); */
-	/* std::cout << "southx[" << i << "] = " << southx[i] << " : " << std::endl; */
-	/* southx[i]->Print(); */
-    /* } */
     plot_xy(c1, h_xy_north, h_xy_south, northx, southx);
-    c1->SaveAs(outname_start.c_str());
+    c1->SaveAs(outname.c_str());
 
     // simple asymmetry
     TH1F* h_phi_north_diff = (TH1F*)f->Get("smd_north_phi_diff");
