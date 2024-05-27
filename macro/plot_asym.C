@@ -159,9 +159,9 @@ void plot_asym(const char* inname, std::string outname) {
 
     // beam centroid xy positions
     TH2F* h_xy_north = (TH2F*)f->Get("smd_xy_neutron_north");
-    TH2F* h_xy_south = (TH2F*)f->Get("smd_xy_neutron_south");
     TH1F* h_ver_north_up = (TH1F*)f->Get("smd_ver_north_up");
     TH1F* h_ver_north_down = (TH1F*)f->Get("smd_ver_north_down");
+    TH2F* h_xy_south = (TH2F*)f->Get("smd_xy_neutron_south");
     TH1F* h_ver_south_up = (TH1F*)f->Get("smd_ver_south_up");
     TH1F* h_ver_south_down = (TH1F*)f->Get("smd_ver_south_down");
     TH1* northx[] = {h_ver_north_up, h_ver_north_down};
@@ -174,6 +174,14 @@ void plot_asym(const char* inname, std::string outname) {
     TH1F* h_phi_north_sum = (TH1F*)f->Get("smd_north_phi_sum");
     TH1F* h_phi_south_diff = (TH1F*)f->Get("smd_south_phi_diff");
     TH1F* h_phi_south_sum = (TH1F*)f->Get("smd_south_phi_sum");
+
+    // Error testing
+    /* TH1F* h_phi_north_up = (TH1F*)f->Get("smd_north_phi_up"); */
+    /* TH1F* h_phi_north_down = (TH1F*)f->Get("smd_north_phi_down"); */
+    /* std::cout << "North phi up bin 1 = " << h_phi_north_up->GetBinContent(1) << ", error = " << h_phi_north_up->GetBinError(1) << std::endl; */
+    /* std::cout << "North phi down bin 1 = " << h_phi_north_down->GetBinContent(1) << ", error = " << h_phi_north_down->GetBinError(1) << std::endl; */
+    /* std::cout << "North phi sum bin 1 = " << h_phi_north_sum->GetBinContent(1) << ", error = " << h_phi_north_sum->GetBinError(1) << std::endl; */
+    /* std::cout << "North phi diff bin 1 = " << h_phi_north_diff->GetBinContent(1) << ", error = " << h_phi_north_diff->GetBinError(1) << std::endl; */
     
     // sqrt asymmetry
     TH1F* h_phi_north_L_up = (TH1F*)f->Get("smd_north_phi_L_up");

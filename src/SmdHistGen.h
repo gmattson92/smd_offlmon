@@ -123,7 +123,7 @@ class SmdHistGen : public SubsysReco
   int s_ver_numhits = 0;
 
   // ADC and timing cuts
-  int minSMDcut = 50;
+  int minSMDcut = 5;
   int minZDC1cut = 100;
   int minZDC2cut = 15;
   int maxVetocut = 150;
@@ -138,7 +138,7 @@ class SmdHistGen : public SubsysReco
   float veto_north_t_high = 9.5;
   float veto_south_t_low = 6.5;
   float veto_south_t_high = 12.5;
-  float radius_low = 2.0;
+  float radius_low = 0.5;
   float radius_high = 4.0;
 
   // Histograms and graphs
@@ -157,6 +157,8 @@ class SmdHistGen : public SubsysReco
   TH1 *smd_ver_south_multiplicity = nullptr;
 
   // signals and waveforms
+  TH1* smd_north_signal = nullptr;
+  TH1* smd_south_signal = nullptr;
   TH1* smd_north_signals[15] = {nullptr};
   TH1* smd_south_signals[15] = {nullptr};
   TH1 *smd_sum_hor_north = nullptr;
@@ -164,9 +166,15 @@ class SmdHistGen : public SubsysReco
   TH1 *smd_sum_hor_south = nullptr;
   TH1 *smd_sum_ver_south = nullptr;
   TH2* smd_north_waveforms = nullptr;
+  TH2* smd_north_waveforms_zoomed = nullptr;
+  TH2* smd_north_waveforms_raw = nullptr;
   TH2* smd_north_channel_waveforms[15] = {nullptr};
   TH2* smd_south_waveforms = nullptr;
+  TH2* smd_south_waveforms_zoomed = nullptr;
+  TH2* smd_south_waveforms_raw = nullptr;
   TH2* smd_south_channel_waveforms[15] = {nullptr};
+  TH1* smd_north_pedestal = nullptr;
+  TH1* smd_south_pedestal = nullptr;
   TH1 *zdc1_north = nullptr;
   TH1 *zdc2_north = nullptr;
   TH2* zdc_north_waveforms = nullptr;

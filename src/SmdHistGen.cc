@@ -81,6 +81,8 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
 
   // signals and waveforms
   float signal_max = 5000;
+  smd_north_signal = new TH1F("smd_north_signal", "North SMD Peak ADC, All Channels;ADC;Counts", 1000, 0.0, signal_max);
+  smd_south_signal = new TH1F("smd_south_signal", "South SMD Peak ADC, All Channels;ADC;Counts", 1000, 0.0, signal_max);
   for (int i=0; i<15; i++)
   {
     smd_north_signals[i] = new TH1F(Form("smd_north_signal_%d", i), Form("North SMD Channel %d", i), 1000, 0.0, signal_max);
@@ -93,7 +95,13 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
   smd_sum_hor_south = new TH1F ("smd_sum_hor_south", "SMD South y", 640, 0, 2560);
   smd_sum_ver_south = new TH1F ("smd_sum_ver_south", "SMD South x", 640, 0, 2560);
   smd_north_waveforms = new TH2F("smd_north_waveforms", "North SMD Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max);
+  smd_north_waveforms_zoomed = new TH2F("smd_north_waveforms_zoomed", "North SMD Waveform;Time;Max ADC", 128, -0.5, 16.5, 250, -0.5, 249.5);
+  smd_north_waveforms_raw = new TH2F("smd_north_waveforms_raw", "North SMD Waveform;Time;Max ADC", 17, -0.5, 16.5, 1000, 0.0, signal_max);
   smd_south_waveforms = new TH2F("smd_south_waveforms", "South SMD Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max);
+  smd_south_waveforms_zoomed = new TH2F("smd_south_waveforms_zoomed", "South SMD Waveform;Time;Max ADC", 128, -0.5, 16.5, 250, -0.5, 249.5);
+  smd_south_waveforms_raw = new TH2F("smd_south_waveforms_raw", "South SMD Waveform;Time;Max ADC", 17, -0.5, 16.5, 1000, 0.0, signal_max);
+  smd_north_pedestal = new TH1F("smd_north_pedestal", "North SMD Pedestal;ADC;Counts", 1000, 0.0, signal_max);
+  smd_south_pedestal = new TH1F("smd_south_pedestal", "South SMD Pedestal;ADC;Counts", 1000, 0.0, signal_max);
   zdc1_north = new TH1F("zdc1_north", "North ZDC1 Signal;ADC;Counts", 256, 0, signal_max);
   zdc2_north = new TH1F("zdc2_north", "North ZDC2 Signal;ADC;Counts", 256, 0, signal_max);
   zdc_north_waveforms = new TH2F("zdc_north_waveforms", "North ZDC Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max);
@@ -107,7 +115,7 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
   vetoback_south = new TH1F("vetoback_south", "South Back Veto Signal;ADC;Counts", 256, 0, signal_max);
   veto_south_waveforms = new TH2F("veto_south_waveforms", "South Veto Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max);
 
-  // x and y distributions
+  // xy distributions
   int nbins_xy = 50;
   smd_xy_all_north = new TH2F("smd_xy_all_north", "SMD hit position north, all good hits;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92);
   smd_xy_all_corrected_north = new TH2F("smd_xy_all_corrected_north", "Center-Corrected SMD hit position north, all good hits;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92);
@@ -658,12 +666,14 @@ void SmdHistGen::GetAdcsDst()
       {
 	smd_north_signals[smd_channel]->Fill(zdc_e);
 	smd_north_waveforms->Fill(zdc_t, zdc_e);
+	smd_north_waveforms_zoomed->Fill(zdc_t, zdc_e);
 	smd_north_channel_waveforms[smd_channel]->Fill(zdc_t, zdc_e);
       }
       if (smd_channel > 15)
       {
 	smd_south_signals[smd_channel-16]->Fill(zdc_e);
 	smd_south_waveforms->Fill(zdc_t, zdc_e);
+	smd_south_waveforms_zoomed->Fill(zdc_t, zdc_e);
 	smd_south_channel_waveforms[smd_channel-16]->Fill(zdc_t, zdc_e);
       }
       // Set the ADC to 0 if we're below threshold or out of time
@@ -711,6 +721,7 @@ void SmdHistGen::GetAdcsRaw()
     std::vector<float> resultFast = anaWaveformFast(packetZDC, channel);  // fast waveform fitting
     float zdc_e = resultFast.at(0);
     float zdc_t = resultFast.at(1);
+    float zdc_ped = resultFast.at(2);
 
     if (channel < 16) // ZDC
     {
@@ -746,9 +757,12 @@ void SmdHistGen::GetAdcsRaw()
       int smd_channel = channel - 48;
       if (smd_channel < 15)
       {
+	smd_north_signal->Fill(zdc_e);
 	smd_north_signals[smd_channel]->Fill(zdc_e);
 	smd_north_waveforms->Fill(zdc_t, zdc_e);
+	smd_north_waveforms_zoomed->Fill(zdc_t, zdc_e);
 	smd_north_channel_waveforms[smd_channel]->Fill(zdc_t, zdc_e);
+	smd_north_pedestal->Fill(zdc_ped);
       }
       // Set the ADC to 0 if we're below threshold or out of time
       /* if (zdc_e < minSMDcut) zdc_e = 0; */
@@ -782,9 +796,12 @@ void SmdHistGen::GetAdcsRaw()
       int smd_channel = channel - 112;
       if (smd_channel < 15)
       {
+	smd_south_signal->Fill(zdc_e);
 	smd_south_signals[smd_channel]->Fill(zdc_e);
 	smd_south_waveforms->Fill(zdc_t, zdc_e);
+	smd_south_waveforms_zoomed->Fill(zdc_t, zdc_e);
 	smd_south_channel_waveforms[smd_channel]->Fill(zdc_t, zdc_e);
+	smd_south_pedestal->Fill(zdc_ped);
       }
       // Set the ADC to 0 if we're below threshold or out of time
       if (zdc_e < minSMDcut) zdc_e = 0;
@@ -1064,6 +1081,15 @@ std::vector<float> SmdHistGen::anaWaveformFast(CaloPacket *p, const int channel)
   for (int s = 0; s < p->iValue(0, "SAMPLES"); s++)
   {
     waveform.push_back(p->iValue(s, channel));
+    // fill waveform histograms
+    if (channel >= 48 && channel < 63)
+    {
+      smd_north_waveforms_raw->Fill(s, p->iValue(s, channel));
+    }
+    if (channel >= 112 && channel < 127)
+    {
+      smd_south_waveforms_raw->Fill(s, p->iValue(s, channel));
+    }
   }
   std::vector<std::vector<float>> multiple_wfs;
   multiple_wfs.push_back(waveform);
