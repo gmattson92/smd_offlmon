@@ -19,6 +19,7 @@ void plot_simple(TPad* pad, TH1* diff, TH1* sum, const char* which) {
     gStyle->SetOptStat(0);
     h_asym->Draw();
     h_asym->Fit("fitsimple");
+    h_asym->GetYaxis()->SetRangeUser(-0.03, 0.03);
     pad->Update();
 }
 
@@ -63,6 +64,7 @@ void plot_sqrt(TPad* pad, TH1* upleft, TH1* upright, TH1* downleft, TH1* downrig
     gStyle->SetOptStat(0);
     sqrt_asym->Draw("ap");
     sqrt_asym->Fit("fitsqrt");
+    sqrt_asym->GetYaxis()->SetRangeUser(-0.03, 0.03);
     pad->Update();
 }
 
