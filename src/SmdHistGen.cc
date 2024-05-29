@@ -37,6 +37,7 @@
 #include <TLegend.h>
 #include <TStyle.h>
 
+#include <algorithm>
 
 //____________________________________________________________________________..
 SmdHistGen::SmdHistGen(const std::string& name, const std::string& which_mode, const char* outname):
@@ -285,15 +286,42 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
     std::cout << "GL1 missing!" << std::endl;
     bunchNum = evtctr%4;
   }
+  /* gl1event++; */
+  /* std::cout << Form("evtctr=%d, gl1event=%d, smdevent=%d", evtctr, gl1event, smdevent) << std::endl; */
   
+  // To account for the GL1-ZDC event # mismatch:
+  // Compute the position and asymmetry-related parts *before* getting the new
+  // ADC values for this event -- that way, the hit positions etc. are computed
+  // based on the *previous* event's ADC values
+
+  /* if (evtctr == 1) */
+  /* { */
+  /*   towerinfosZDC = findNode::getClass<TowerInfoContainer>(topNode, "TOWERS_ZDC"); */
+  /*   packetsZDC = findNode::getClass<CaloPacketContainerv1>(topNode, "ZDCPackets"); */
+  /*   GetAdcs(); */
+  /*   return Fun4AllReturnCodes::EVENT_OK; */
+  /* } */
+
+  /*
   // Get the ADC values
   towerinfosZDC = findNode::getClass<TowerInfoContainer>(topNode, "TOWERS_ZDC");
   packetsZDC = findNode::getClass<CaloPacketContainerv1>(topNode, "ZDCPackets");
   GetAdcs();
+  */
 
   // call the functions
   CompSmdAdc();
   CompSmdPos();
+  /* std::cout << Form("Event %d start: smd_adc = {", evtctr); */
+  /* for (int i=0; i<15; i++) { */
+  /*     std::cout << smd_adc[i] << ", "; */
+  /* } */
+  /* std::cout << smd_adc[15] << "}" << std::endl; */
+  /* std::cout << Form("Event %d start: smd_time = {", evtctr); */
+  /* for (int i=0; i<15; i++) { */
+  /*     std::cout << smd_time[i] << ", "; */
+  /* } */
+  /* std::cout << smd_time[15] << "}" << std::endl; */
   CompSmdPosCorr();
   CompSumSmd();
   CountSMDHits();
@@ -458,6 +486,30 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
       smd_south_phi_R_down_corrected->Fill(south_phi_corr);
     }
   }
+
+  // Now update the ADC values for the next event
+  towerinfosZDC = findNode::getClass<TowerInfoContainer>(topNode, "TOWERS_ZDC");
+  packetsZDC = findNode::getClass<CaloPacketContainerv1>(topNode, "ZDCPackets");
+  GetAdcs();
+  /* smdevent++; */
+  /* CompSmdPos(); */
+  /* std::cout << Form("Event %d end: smd_adc = {", evtctr); */
+  /* for (int i=0; i<15; i++) { */
+  /*     std::cout << smd_adc[i] << ", "; */
+  /* } */
+  /* std::cout << smd_adc[15] << "}" << std::endl; */
+  /* std::cout << Form("Event %d end: smd_time = {", evtctr); */
+  /* for (int i=0; i<15; i++) { */
+  /*     std::cout << smd_time[i] << ", "; */
+  /* } */
+  /* std::cout << smd_time[15] << "}" << std::endl; */
+  /* Gl1Packetv1* gl1 = findNode::getClass<Gl1Packetv1>(topNode, "GL1Packet"); */
+  /* if (gl1) */
+  /* { */
+  /*   bunchNum = gl1->getBunchNumber(); */
+  /*   bunchNum = (bunchNum + crossingShift)%NBUNCHES; */
+  /*   /1* std::cout << "Got bunch number = " << bunchNum << std::endl; *1/ */
+  /* } */
 
   return Fun4AllReturnCodes::EVENT_OK;
 }
@@ -765,8 +817,8 @@ void SmdHistGen::GetAdcsRaw()
 	smd_north_pedestal->Fill(zdc_ped);
       }
       // Set the ADC to 0 if we're below threshold or out of time
-      /* if (zdc_e < minSMDcut) zdc_e = 0; */
-      /* if ((zdc_t < smd_north_t_low) || (zdc_t > smd_north_t_high)) zdc_e = 0; */
+      if (zdc_e < minSMDcut) zdc_e = 0;
+      if ((zdc_t < smd_north_t_low) || (zdc_t > smd_north_t_high)) zdc_e = 0;
       smd_adc[smd_channel] = zdc_e;
       smd_time[smd_channel] = zdc_t;
       continue;
@@ -942,9 +994,19 @@ void SmdHistGen::CountSMDHits()
   s_hor_numhits = 0;
   s_ver_numhits = 0;
 
+  std::vector<int> n_hor(8, -999);
+  std::vector<int> n_ver(7, -999);
+  std::vector<int> s_hor(8, -999);
+  std::vector<int> s_ver(7, -999);
+  int n_hor_adjacent;
+  int n_ver_adjacent;
+  int s_hor_adjacent;
+  int s_ver_adjacent;
+
   // north
   for ( int i = 0; i < 8; i++)
   {
+    n_hor[i] = 10*(i+1);
     if ( smd_adc[i] > minSMDcut )
     {
       // timing requirement
@@ -952,12 +1014,14 @@ void SmdHistGen::CountSMDHits()
       {
         n_hor_numhits ++;
         smd_hor_north_total_hits->Fill(i);
+	n_hor[i] = 0;
       }
     }
   }
   smd_hor_north_multiplicity->Fill(n_hor_numhits);
   for ( int i = 0; i < 7; i++)
   {
+    n_ver[i] = 10*(i+1);
     if ( smd_adc[i + 8] > minSMDcut )
     {
       // timing requirement
@@ -965,6 +1029,7 @@ void SmdHistGen::CountSMDHits()
       {
         n_ver_numhits ++;
 	smd_ver_north_total_hits->Fill(i);
+	n_ver[i] = 0;
       }
     }
   }
@@ -973,28 +1038,45 @@ void SmdHistGen::CountSMDHits()
   // south
   for ( int i = 0; i < 8; i++)
   {
+    s_hor[i] = 10*(i+1);
     if ( smd_adc[i + 16] > minSMDcut )
     {
       if ( smd_time[i+16]>=smd_south_t_low && smd_time[i+16]<=smd_south_t_high )
       {
 	s_hor_numhits++;
 	smd_hor_south_total_hits->Fill(i);
+	s_hor[i] = 0;
       }
     }
   }
   smd_hor_south_multiplicity->Fill(s_hor_numhits);
   for ( int i = 0; i < 7; i++)
   {
+    s_ver[i] = 10*(i+1);
     if ( smd_adc[i + 24] > minSMDcut )
     {
       if ( smd_time[i+24]>=smd_south_t_low && smd_time[i+24]<=smd_south_t_high )
       {
 	s_ver_numhits++;
 	smd_ver_south_total_hits->Fill(i);
+	s_ver[i] = 0;
       }
     }
   }
   smd_ver_south_multiplicity->Fill(s_ver_numhits);
+
+  n_hor_adjacent = CountAdjacentHits(n_hor);
+  n_ver_adjacent = CountAdjacentHits(n_ver);
+  s_hor_adjacent = CountAdjacentHits(s_hor);
+  s_ver_adjacent = CountAdjacentHits(s_ver);
+  // for testing
+  if (false)
+  {
+    n_hor_numhits = n_hor_adjacent;
+    n_ver_numhits = n_ver_adjacent;
+    s_hor_numhits = s_hor_adjacent;
+    s_ver_numhits = s_ver_adjacent;
+  }
 }
 
 bool SmdHistGen::NeutronSelection(std::string which, bool centerCorrected)
@@ -1102,3 +1184,23 @@ std::vector<float> SmdHistGen::anaWaveformFast(CaloPacket *p, const int channel)
   return result;
 }
 
+int SmdHistGen::CountAdjacentHits(std::vector<int> channels)
+{
+  // this function assumes each channel with a valid hit has value 0,
+  // all other channels have *distinct* nonzero values
+  std::vector<int> hit_indices;
+  for (unsigned int i=0; i<channels.size(); i++)
+  {
+    if (channels[i] == 0) {hit_indices.push_back(i);}
+  }
+  int nhits = hit_indices.size();
+  // if there is only 1 hit, let's say it is adjacent to itself
+  if (nhits < 2) {return nhits;}
+  int n_adjacent = 1;
+  for (int i=0; i<(nhits-1); i++)
+  {
+    int delta = hit_indices[i+1] - hit_indices[i];
+    if (delta == 1) {n_adjacent++;}
+  }
+  return n_adjacent;
+}

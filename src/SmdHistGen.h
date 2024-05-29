@@ -79,6 +79,7 @@ class SmdHistGen : public SubsysReco
   void CountSMDHits();
   bool NeutronSelection(std::string which, bool centerCorrected = false);
   std::vector<float> anaWaveformFast(CaloPacket *p, const int channel);
+  int CountAdjacentHits(std::vector<int> channels);
 
   double PI = 3.14159;
   static const int NBUNCHES = 120;
@@ -98,6 +99,8 @@ class SmdHistGen : public SubsysReco
   RunHeaderv1 *runHeader = nullptr;
   int runNum = 0;
   int evtctr = 0;
+  int gl1event = 0;
+  int smdevent = 0;
   TowerInfoContainer *towerinfosZDC = nullptr;
   CaloPacketContainerv1 *packetsZDC = nullptr;
   CaloWaveformFitting *WaveformProcessingFast = nullptr;
@@ -138,7 +141,7 @@ class SmdHistGen : public SubsysReco
   float veto_north_t_high = 9.5;
   float veto_south_t_low = 6.5;
   float veto_south_t_high = 12.5;
-  float radius_low = 0.5;
+  float radius_low = 2.0;
   float radius_high = 4.0;
 
   // Histograms and graphs

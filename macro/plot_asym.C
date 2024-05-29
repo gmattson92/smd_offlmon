@@ -19,7 +19,12 @@ void plot_simple(TPad* pad, TH1* diff, TH1* sum, const char* which) {
     gStyle->SetOptStat(0);
     h_asym->Draw();
     h_asym->Fit("fitsimple");
-    h_asym->GetYaxis()->SetRangeUser(-0.03, 0.03);
+    float offset = fit->GetParameter(0);
+    h_asym->GetYaxis()->SetRangeUser(offset-0.03, offset+0.03);
+    TLine* l = new TLine(h_asym->GetXaxis()->GetXmin(), offset, h_asym->GetXaxis()->GetXmax(), offset);
+    l->SetLineColor(kRed);
+    l->SetLineStyle(kDashed);
+    l->Draw();
     pad->Update();
 }
 
