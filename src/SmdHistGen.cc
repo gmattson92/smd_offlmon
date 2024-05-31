@@ -36,6 +36,7 @@
 #include <TCanvas.h>
 #include <TLegend.h>
 #include <TStyle.h>
+#include <TTree.h>
 
 #include <algorithm>
 
@@ -43,8 +44,7 @@
 SmdHistGen::SmdHistGen(const std::string& name, const std::string& which_mode, const char* outname):
   SubsysReco(name),
   mode(which_mode),
-  outfilename(outname),
-  outfile(nullptr)
+  outfilename(outname)
 {
   std::cout << "SmdHistGen::SmdHistGen(const std::string &name) Calling ctor" << std::endl;
 }
@@ -63,133 +63,156 @@ int SmdHistGen::Init(PHCompositeNode *topNode)
   // Create output file
   outfile = new TFile(outfilename, "RECREATE");
   outfile->cd();
+  // Create tree
+  smdTree = new TTree("smdTree", "smdTree");
+  smdTree->Branch("bunchNum",  &bunchNum);
+  smdTree->Branch("bspin",  &bspin);
+  smdTree->Branch("yspin",  &yspin);
+  smdTree->Branch("n_hor_numhits",  &n_hor_numhits);
+  smdTree->Branch("n_ver_numhits",  &n_ver_numhits);
+  smdTree->Branch("s_hor_numhits",  &s_hor_numhits);
+  smdTree->Branch("s_ver_numhits",  &s_ver_numhits);
+  smdTree->Branch("n_zdc_1",  &n_zdc_1);
+  smdTree->Branch("n_zdc_2",  &n_zdc_2);
+  smdTree->Branch("n_veto_front",  &n_veto_front);
+  smdTree->Branch("n_veto_back",  &n_veto_back);
+  smdTree->Branch("s_zdc_1",  &s_zdc_1);
+  smdTree->Branch("s_zdc_2",  &s_zdc_2);
+  smdTree->Branch("s_veto_front",  &s_veto_front);
+  smdTree->Branch("s_veto_back",  &s_veto_back);
+  smdTree->Branch("n_x",  &n_x);
+  smdTree->Branch("n_y",  &n_y);
+  smdTree->Branch("s_x",  &s_x);
+  smdTree->Branch("s_y",  &s_y);
+  smdTree->Branch("n_neutron",  &n_neutron);
+  smdTree->Branch("s_neutron",  &s_neutron);
 
-  // Create hitograms
+  /* // Create histograms */
 
-  // hits per channel and hit multiply
-  smd_hor_north_total_hits = new TH1F("smd_hor_north_total_hits", "Total Hits by Channel, SMD North Horizontal;Channel;Counts", 8, -0.5, 7.5);
-  smd_ver_north_total_hits = new TH1F("smd_ver_north_total_hits", "Total Hits by Channel, SMD North Vertical;Channel;Counts", 7, -0.5, 6.5);
-  smd_hor_north_neutron_hits = new TH1F("smd_hor_north_neutron_hits", "Neutron Hits by Channel, SMD North Horizontal;Channel;Counts", 8, -0.5, 7.5);
-  smd_ver_north_neutron_hits = new TH1F("smd_ver_north_neutron_hits", "Neutron Hits by Channel, SMD North Vertical;Channel;Counts", 7, -0.5, 6.5);
-  smd_hor_north_multiplicity = new TH1F("smd_hor_north_multiplicity", Form("In-Time Hit Multiplicity, ADC>%d, SMD North Horizontal;# Hits;Counts", minSMDcut), 9, -0.5, 8.5);
-  smd_ver_north_multiplicity = new TH1F("smd_ver_north_multiplicity", Form("In-Time Hit Multiplicity, ADC>%d, SMD North Vertical;# Hits;Counts", minSMDcut), 8, -0.5, 7.5);
-  smd_hor_south_total_hits = new TH1F("smd_hor_south_total_hits", "Total Hits by Channel, SMD South Horizontal;Channel;Counts", 8, -0.5, 7.5);
-  smd_ver_south_total_hits = new TH1F("smd_ver_south_total_hits", "Total Hits by Channel, SMD South Vertical;Channel;Counts", 7, -0.5, 6.5);
-  smd_hor_south_neutron_hits = new TH1F("smd_hor_south_neutron_hits", "Neutron Hits by Channel, SMD South Horizontal;Channel;Counts", 8, -0.5, 7.5);
-  smd_ver_south_neutron_hits = new TH1F("smd_ver_south_neutron_hits", "Neutron Hits by Channel, SMD South Vertical;Channel;Counts", 7, -0.5, 6.5);
-  smd_hor_south_multiplicity = new TH1F("smd_hor_south_multiplicity", Form("In-Time Hit Multiplicity, ADC>%d, SMD South Horizontal;# Hits;Counts", minSMDcut), 9, -0.5, 8.5);
-  smd_ver_south_multiplicity = new TH1F("smd_ver_south_multiplicity", Form("In-Time Hit Multiplicity, ADC>%d, SMD South Vertical;# Hits;Counts", minSMDcut), 8, -0.5, 7.5);
+  /* // hits per channel and hit multiply */
+  /* smd_hor_north_total_hits = new TH1F("smd_hor_north_total_hits", "Total Hits by Channel, SMD North Horizontal;Channel;Counts", 8, -0.5, 7.5); */
+  /* smd_ver_north_total_hits = new TH1F("smd_ver_north_total_hits", "Total Hits by Channel, SMD North Vertical;Channel;Counts", 7, -0.5, 6.5); */
+  /* smd_hor_north_neutron_hits = new TH1F("smd_hor_north_neutron_hits", "Neutron Hits by Channel, SMD North Horizontal;Channel;Counts", 8, -0.5, 7.5); */
+  /* smd_ver_north_neutron_hits = new TH1F("smd_ver_north_neutron_hits", "Neutron Hits by Channel, SMD North Vertical;Channel;Counts", 7, -0.5, 6.5); */
+  /* smd_hor_north_multiplicity = new TH1F("smd_hor_north_multiplicity", Form("In-Time Hit Multiplicity, ADC>%d, SMD North Horizontal;# Hits;Counts", minSMDcut), 9, -0.5, 8.5); */
+  /* smd_ver_north_multiplicity = new TH1F("smd_ver_north_multiplicity", Form("In-Time Hit Multiplicity, ADC>%d, SMD North Vertical;# Hits;Counts", minSMDcut), 8, -0.5, 7.5); */
+  /* smd_hor_south_total_hits = new TH1F("smd_hor_south_total_hits", "Total Hits by Channel, SMD South Horizontal;Channel;Counts", 8, -0.5, 7.5); */
+  /* smd_ver_south_total_hits = new TH1F("smd_ver_south_total_hits", "Total Hits by Channel, SMD South Vertical;Channel;Counts", 7, -0.5, 6.5); */
+  /* smd_hor_south_neutron_hits = new TH1F("smd_hor_south_neutron_hits", "Neutron Hits by Channel, SMD South Horizontal;Channel;Counts", 8, -0.5, 7.5); */
+  /* smd_ver_south_neutron_hits = new TH1F("smd_ver_south_neutron_hits", "Neutron Hits by Channel, SMD South Vertical;Channel;Counts", 7, -0.5, 6.5); */
+  /* smd_hor_south_multiplicity = new TH1F("smd_hor_south_multiplicity", Form("In-Time Hit Multiplicity, ADC>%d, SMD South Horizontal;# Hits;Counts", minSMDcut), 9, -0.5, 8.5); */
+  /* smd_ver_south_multiplicity = new TH1F("smd_ver_south_multiplicity", Form("In-Time Hit Multiplicity, ADC>%d, SMD South Vertical;# Hits;Counts", minSMDcut), 8, -0.5, 7.5); */
 
-  // signals and waveforms
-  float signal_max = 5000;
-  smd_north_signal = new TH1F("smd_north_signal", "North SMD Peak ADC, All Channels;ADC;Counts", 1000, 0.0, signal_max);
-  smd_south_signal = new TH1F("smd_south_signal", "South SMD Peak ADC, All Channels;ADC;Counts", 1000, 0.0, signal_max);
-  for (int i=0; i<15; i++)
-  {
-    smd_north_signals[i] = new TH1F(Form("smd_north_signal_%d", i), Form("North SMD Channel %d", i), 1000, 0.0, signal_max);
-    smd_north_channel_waveforms[i] = new TH2F(Form("smd_north_waveforms_%d", i), Form("North SMD Waveforms Channel %d", i), 128, -0.5, 16.5, 256, 0.0, signal_max);
-    smd_south_signals[i] = new TH1F(Form("smd_south_signal_%d", i), Form("South SMD Channel %d", i), 1000, 0.0, signal_max);
-    smd_south_channel_waveforms[i] = new TH2F(Form("smd_south_waveforms_%d", i), Form("South SMD Waveforms Channel %d", i), 128, -0.5, 16.5, 256, 0.0, signal_max);
-  }
-  smd_sum_hor_north = new TH1F ("smd_sum_hor_north", "SMD North y", 512, 0, 2048);
-  smd_sum_ver_north = new TH1F ("smd_sum_ver_north", "SMD North x", 512, 0, 2048);
-  smd_sum_hor_south = new TH1F ("smd_sum_hor_south", "SMD South y", 640, 0, 2560);
-  smd_sum_ver_south = new TH1F ("smd_sum_ver_south", "SMD South x", 640, 0, 2560);
-  smd_north_waveforms = new TH2F("smd_north_waveforms", "North SMD Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max);
-  smd_north_waveforms_zoomed = new TH2F("smd_north_waveforms_zoomed", "North SMD Waveform;Time;Max ADC", 128, -0.5, 16.5, 250, -0.5, 249.5);
-  smd_north_waveforms_raw = new TH2F("smd_north_waveforms_raw", "North SMD Waveform;Time;Max ADC", 17, -0.5, 16.5, 1000, 0.0, signal_max);
-  smd_south_waveforms = new TH2F("smd_south_waveforms", "South SMD Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max);
-  smd_south_waveforms_zoomed = new TH2F("smd_south_waveforms_zoomed", "South SMD Waveform;Time;Max ADC", 128, -0.5, 16.5, 250, -0.5, 249.5);
-  smd_south_waveforms_raw = new TH2F("smd_south_waveforms_raw", "South SMD Waveform;Time;Max ADC", 17, -0.5, 16.5, 1000, 0.0, signal_max);
-  smd_north_pedestal = new TH1F("smd_north_pedestal", "North SMD Pedestal;ADC;Counts", 1000, 0.0, signal_max);
-  smd_south_pedestal = new TH1F("smd_south_pedestal", "South SMD Pedestal;ADC;Counts", 1000, 0.0, signal_max);
-  zdc1_north = new TH1F("zdc1_north", "North ZDC1 Signal;ADC;Counts", 256, 0, signal_max);
-  zdc2_north = new TH1F("zdc2_north", "North ZDC2 Signal;ADC;Counts", 256, 0, signal_max);
-  zdc_north_waveforms = new TH2F("zdc_north_waveforms", "North ZDC Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max);
-  zdc1_south = new TH1F("zdc1_south", "South ZDC1 Signal;ADC;Counts", 256, 0, signal_max);
-  zdc2_south = new TH1F("zdc2_south", "South ZDC2 Signal;ADC;Counts", 256, 0, signal_max);
-  zdc_south_waveforms = new TH2F("zdc_south_waveforms", "South ZDC Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max);
-  vetofront_north = new TH1F("vetofront_north", "North Front Veto Signal;ADC;Counts", 256, 0, signal_max);
-  vetoback_north = new TH1F("vetoback_north", "North Back Veto Signal;ADC;Counts", 256, 0, signal_max);
-  veto_north_waveforms = new TH2F("veto_north_waveforms", "North Veto Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max);
-  vetofront_south = new TH1F("vetofront_south", "South Front Veto Signal;ADC;Counts", 256, 0, signal_max);
-  vetoback_south = new TH1F("vetoback_south", "South Back Veto Signal;ADC;Counts", 256, 0, signal_max);
-  veto_south_waveforms = new TH2F("veto_south_waveforms", "South Veto Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max);
+  /* // signals and waveforms */
+  /* float signal_max = 5000; */
+  /* smd_north_signal = new TH1F("smd_north_signal", "North SMD Peak ADC, All Channels;ADC;Counts", 1000, 0.0, signal_max); */
+  /* smd_south_signal = new TH1F("smd_south_signal", "South SMD Peak ADC, All Channels;ADC;Counts", 1000, 0.0, signal_max); */
+  /* for (int i=0; i<15; i++) */
+  /* { */
+  /*   smd_north_signals[i] = new TH1F(Form("smd_north_signal_%d", i), Form("North SMD Channel %d", i), 1000, 0.0, signal_max); */
+  /*   smd_north_channel_waveforms[i] = new TH2F(Form("smd_north_waveforms_%d", i), Form("North SMD Waveforms Channel %d", i), 128, -0.5, 16.5, 256, 0.0, signal_max); */
+  /*   smd_south_signals[i] = new TH1F(Form("smd_south_signal_%d", i), Form("South SMD Channel %d", i), 1000, 0.0, signal_max); */
+  /*   smd_south_channel_waveforms[i] = new TH2F(Form("smd_south_waveforms_%d", i), Form("South SMD Waveforms Channel %d", i), 128, -0.5, 16.5, 256, 0.0, signal_max); */
+  /* } */
+  /* smd_sum_hor_north = new TH1F ("smd_sum_hor_north", "SMD North y", 512, 0, 2048); */
+  /* smd_sum_ver_north = new TH1F ("smd_sum_ver_north", "SMD North x", 512, 0, 2048); */
+  /* smd_sum_hor_south = new TH1F ("smd_sum_hor_south", "SMD South y", 640, 0, 2560); */
+  /* smd_sum_ver_south = new TH1F ("smd_sum_ver_south", "SMD South x", 640, 0, 2560); */
+  /* smd_north_waveforms = new TH2F("smd_north_waveforms", "North SMD Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max); */
+  /* smd_north_waveforms_zoomed = new TH2F("smd_north_waveforms_zoomed", "North SMD Waveform;Time;Max ADC", 128, -0.5, 16.5, 250, -0.5, 249.5); */
+  /* smd_north_waveforms_raw = new TH2F("smd_north_waveforms_raw", "North SMD Waveform;Time;Max ADC", 17, -0.5, 16.5, 1000, 0.0, signal_max); */
+  /* smd_south_waveforms = new TH2F("smd_south_waveforms", "South SMD Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max); */
+  /* smd_south_waveforms_zoomed = new TH2F("smd_south_waveforms_zoomed", "South SMD Waveform;Time;Max ADC", 128, -0.5, 16.5, 250, -0.5, 249.5); */
+  /* smd_south_waveforms_raw = new TH2F("smd_south_waveforms_raw", "South SMD Waveform;Time;Max ADC", 17, -0.5, 16.5, 1000, 0.0, signal_max); */
+  /* smd_north_pedestal = new TH1F("smd_north_pedestal", "North SMD Pedestal;ADC;Counts", 1000, 0.0, signal_max); */
+  /* smd_south_pedestal = new TH1F("smd_south_pedestal", "South SMD Pedestal;ADC;Counts", 1000, 0.0, signal_max); */
+  /* zdc1_north = new TH1F("zdc1_north", "North ZDC1 Signal;ADC;Counts", 256, 0, signal_max); */
+  /* zdc2_north = new TH1F("zdc2_north", "North ZDC2 Signal;ADC;Counts", 256, 0, signal_max); */
+  /* zdc_north_waveforms = new TH2F("zdc_north_waveforms", "North ZDC Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max); */
+  /* zdc1_south = new TH1F("zdc1_south", "South ZDC1 Signal;ADC;Counts", 256, 0, signal_max); */
+  /* zdc2_south = new TH1F("zdc2_south", "South ZDC2 Signal;ADC;Counts", 256, 0, signal_max); */
+  /* zdc_south_waveforms = new TH2F("zdc_south_waveforms", "South ZDC Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max); */
+  /* vetofront_north = new TH1F("vetofront_north", "North Front Veto Signal;ADC;Counts", 256, 0, signal_max); */
+  /* vetoback_north = new TH1F("vetoback_north", "North Back Veto Signal;ADC;Counts", 256, 0, signal_max); */
+  /* veto_north_waveforms = new TH2F("veto_north_waveforms", "North Veto Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max); */
+  /* vetofront_south = new TH1F("vetofront_south", "South Front Veto Signal;ADC;Counts", 256, 0, signal_max); */
+  /* vetoback_south = new TH1F("vetoback_south", "South Back Veto Signal;ADC;Counts", 256, 0, signal_max); */
+  /* veto_south_waveforms = new TH2F("veto_south_waveforms", "South Veto Waveform;Time;Max ADC", 128, -0.5, 16.5, 256, 0.0, signal_max); */
 
-  // xy distributions
-  int nbins_xy = 50;
-  smd_xy_all_north = new TH2F("smd_xy_all_north", "SMD hit position north, all good hits;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92);
-  smd_xy_all_corrected_north = new TH2F("smd_xy_all_corrected_north", "Center-Corrected SMD hit position north, all good hits;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92);
-  smd_xy_neutron_north = new TH2F("smd_xy_neutron_north", "SMD hit position north, neutron hits only;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92);
-  smd_xy_neutron_corrected_north = new TH2F("smd_xy_neutron_corrected_north", "Center-Corrected SMD hit position north, neutron hits only;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92);
-  smd_xy_all_south = new TH2F("smd_xy_all_south", "SMD hit position south, all good hits;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92);
-  smd_xy_all_corrected_south = new TH2F("smd_xy_all_corrected_south", "Center-Corrected SMD hit position south, all good hits;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92);
-  smd_xy_neutron_south = new TH2F("smd_xy_neutron_south", "SMD hit position south, neutron hits only;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92);
-  smd_xy_neutron_corrected_south = new TH2F("smd_xy_neutron_corrected_south", "Center-Corrected SMD hit position south, neutron hits only;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92);
+  /* // xy distributions */
+  /* int nbins_xy = 50; */
+  /* smd_xy_all_north = new TH2F("smd_xy_all_north", "SMD hit position north, all good hits;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92); */
+  /* smd_xy_all_corrected_north = new TH2F("smd_xy_all_corrected_north", "Center-Corrected SMD hit position north, all good hits;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92); */
+  /* smd_xy_neutron_north = new TH2F("smd_xy_neutron_north", "SMD hit position north, neutron hits only;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92); */
+  /* smd_xy_neutron_corrected_north = new TH2F("smd_xy_neutron_corrected_north", "Center-Corrected SMD hit position north, neutron hits only;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92); */
+  /* smd_xy_all_south = new TH2F("smd_xy_all_south", "SMD hit position south, all good hits;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92); */
+  /* smd_xy_all_corrected_south = new TH2F("smd_xy_all_corrected_south", "Center-Corrected SMD hit position south, all good hits;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92); */
+  /* smd_xy_neutron_south = new TH2F("smd_xy_neutron_south", "SMD hit position south, neutron hits only;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92); */
+  /* smd_xy_neutron_corrected_south = new TH2F("smd_xy_neutron_corrected_south", "Center-Corrected SMD hit position south, neutron hits only;x;y", 110, -5.5, 5.5, 119, -5.92, 5.92); */
 
-  // 1D spin dependent x and y
-  smd_hor_north = new TH1F("smd_hor_north", "Neutron centroid distribution, SMD North y", nbins_xy, -5.92, 5.92);
-  smd_ver_north = new TH1F("smd_ver_north", "Neutron centroid distribution, SMD North x", nbins_xy, -5.5, 5.5);
-  smd_hor_north_up = new TH1F("smd_hor_north_up", "Neutron centroid distribution, SMD North y, Spin Up", nbins_xy, -5.92, 5.92);
-  smd_ver_north_up = new TH1F("smd_ver_north_up", "Neutron centroid distribution, SMD North x, Spin Up", nbins_xy, -5.5, 5.5);
-  smd_hor_north_down = new TH1F("smd_hor_north_down", "Neutron centroid distribution, SMD North y, Spin Down", nbins_xy, -5.92, 5.92);
-  smd_ver_north_down = new TH1F("smd_ver_north_down", "Neutron centroid distribution, SMD North x, Spin Down", nbins_xy, -5.5, 5.5);
-  smd_hor_south = new TH1F("smd_hor_south", "Neutron centroid distribution, SMD South y", nbins_xy, -5.92, 5.92);
-  smd_ver_south = new TH1F("smd_ver_south", "Neutron centroid distribution, SMD South x", nbins_xy, -5.5, 5.5);
-  smd_hor_south_up = new TH1F("smd_hor_south_up", "Neutron centroid distribution, SMD South y, Spin Up", nbins_xy, -5.92, 5.92);
-  smd_ver_south_up = new TH1F("smd_ver_south_up", "Neutron centroid distribution, SMD South x, Spin Up", nbins_xy, -5.5, 5.5);
-  smd_hor_south_down = new TH1F("smd_hor_south_down", "Neutron centroid distribution, SMD South y, Spin Down", nbins_xy, -5.92, 5.92);
-  smd_ver_south_down = new TH1F("smd_ver_south_down", "Neutron centroid distribution, SMD South x, Spin Down", nbins_xy, -5.5, 5.5);
+  /* // 1D spin dependent x and y */
+  /* smd_hor_north = new TH1F("smd_hor_north", "Neutron centroid distribution, SMD North y", nbins_xy, -5.92, 5.92); */
+  /* smd_ver_north = new TH1F("smd_ver_north", "Neutron centroid distribution, SMD North x", nbins_xy, -5.5, 5.5); */
+  /* smd_hor_north_up = new TH1F("smd_hor_north_up", "Neutron centroid distribution, SMD North y, Spin Up", nbins_xy, -5.92, 5.92); */
+  /* smd_ver_north_up = new TH1F("smd_ver_north_up", "Neutron centroid distribution, SMD North x, Spin Up", nbins_xy, -5.5, 5.5); */
+  /* smd_hor_north_down = new TH1F("smd_hor_north_down", "Neutron centroid distribution, SMD North y, Spin Down", nbins_xy, -5.92, 5.92); */
+  /* smd_ver_north_down = new TH1F("smd_ver_north_down", "Neutron centroid distribution, SMD North x, Spin Down", nbins_xy, -5.5, 5.5); */
+  /* smd_hor_south = new TH1F("smd_hor_south", "Neutron centroid distribution, SMD South y", nbins_xy, -5.92, 5.92); */
+  /* smd_ver_south = new TH1F("smd_ver_south", "Neutron centroid distribution, SMD South x", nbins_xy, -5.5, 5.5); */
+  /* smd_hor_south_up = new TH1F("smd_hor_south_up", "Neutron centroid distribution, SMD South y, Spin Up", nbins_xy, -5.92, 5.92); */
+  /* smd_ver_south_up = new TH1F("smd_ver_south_up", "Neutron centroid distribution, SMD South x, Spin Up", nbins_xy, -5.5, 5.5); */
+  /* smd_hor_south_down = new TH1F("smd_hor_south_down", "Neutron centroid distribution, SMD South y, Spin Down", nbins_xy, -5.92, 5.92); */
+  /* smd_ver_south_down = new TH1F("smd_ver_south_down", "Neutron centroid distribution, SMD South x, Spin Down", nbins_xy, -5.5, 5.5); */
 
-  // beam center correction
-  smd_hor_north_corrected = new TH1F("smd_hor_north_corrected", "Center-Corrected Neutron centroid distribution, SMD North y", nbins_xy, -5.92, 5.92);
-  smd_ver_north_corrected = new TH1F("smd_ver_north_corrected", "Center-Corrected Neutron centroid distribution, SMD North x", nbins_xy, -5.5, 5.5);
-  smd_hor_north_corrected_up = new TH1F("smd_hor_north_corrected_up", "Center-Corrected Neutron centroid distribution, SMD North y, Spin Up", nbins_xy, -5.92, 5.92);
-  smd_ver_north_corrected_up = new TH1F("smd_ver_north_corrected_up", "Center-Corrected Neutron centroid distribution, SMD North x, Spin Up", nbins_xy, -5.5, 5.5);
-  smd_hor_north_corrected_down = new TH1F("smd_hor_north_corrected_down", "Center-Corrected Neutron centroid distribution, SMD North y, Spin Down", nbins_xy, -5.92, 5.92);
-  smd_ver_north_corrected_down = new TH1F("smd_ver_north_corrected_down", "Center-Corrected Neutron centroid distribution, SMD North x, Spin Down", nbins_xy, -5.5, 5.5);
-  smd_hor_south_corrected = new TH1F("smd_hor_south_corrected", "Center-Corrected Neutron centroid distribution, SMD South y", nbins_xy, -5.92, 5.92);
-  smd_ver_south_corrected = new TH1F("smd_ver_south_corrected", "Center-Corrected Neutron centroid distribution, SMD South x", nbins_xy, -5.5, 5.5);
-  smd_hor_south_corrected_up = new TH1F("smd_hor_south_corrected_up", "Center-Corrected Neutron centroid distribution, SMD South y, Spin Up", nbins_xy, -5.92, 5.92);
-  smd_ver_south_corrected_up = new TH1F("smd_ver_south_corrected_up", "Center-Corrected Neutron centroid distribution, SMD South x, Spin Up", nbins_xy, -5.5, 5.5);
-  smd_hor_south_corrected_down = new TH1F("smd_hor_south_corrected_down", "Center-Corrected Neutron centroid distribution, SMD South y, Spin Down", nbins_xy, -5.92, 5.92);
-  smd_ver_south_corrected_down = new TH1F("smd_ver_south_corrected_down", "Center-Corrected Neutron centroid distribution, SMD South x, Spin Down", nbins_xy, -5.5, 5.5);
+  /* // beam center correction */
+  /* smd_hor_north_corrected = new TH1F("smd_hor_north_corrected", "Center-Corrected Neutron centroid distribution, SMD North y", nbins_xy, -5.92, 5.92); */
+  /* smd_ver_north_corrected = new TH1F("smd_ver_north_corrected", "Center-Corrected Neutron centroid distribution, SMD North x", nbins_xy, -5.5, 5.5); */
+  /* smd_hor_north_corrected_up = new TH1F("smd_hor_north_corrected_up", "Center-Corrected Neutron centroid distribution, SMD North y, Spin Up", nbins_xy, -5.92, 5.92); */
+  /* smd_ver_north_corrected_up = new TH1F("smd_ver_north_corrected_up", "Center-Corrected Neutron centroid distribution, SMD North x, Spin Up", nbins_xy, -5.5, 5.5); */
+  /* smd_hor_north_corrected_down = new TH1F("smd_hor_north_corrected_down", "Center-Corrected Neutron centroid distribution, SMD North y, Spin Down", nbins_xy, -5.92, 5.92); */
+  /* smd_ver_north_corrected_down = new TH1F("smd_ver_north_corrected_down", "Center-Corrected Neutron centroid distribution, SMD North x, Spin Down", nbins_xy, -5.5, 5.5); */
+  /* smd_hor_south_corrected = new TH1F("smd_hor_south_corrected", "Center-Corrected Neutron centroid distribution, SMD South y", nbins_xy, -5.92, 5.92); */
+  /* smd_ver_south_corrected = new TH1F("smd_ver_south_corrected", "Center-Corrected Neutron centroid distribution, SMD South x", nbins_xy, -5.5, 5.5); */
+  /* smd_hor_south_corrected_up = new TH1F("smd_hor_south_corrected_up", "Center-Corrected Neutron centroid distribution, SMD South y, Spin Up", nbins_xy, -5.92, 5.92); */
+  /* smd_ver_south_corrected_up = new TH1F("smd_ver_south_corrected_up", "Center-Corrected Neutron centroid distribution, SMD South x, Spin Up", nbins_xy, -5.5, 5.5); */
+  /* smd_hor_south_corrected_down = new TH1F("smd_hor_south_corrected_down", "Center-Corrected Neutron centroid distribution, SMD South y, Spin Down", nbins_xy, -5.92, 5.92); */
+  /* smd_ver_south_corrected_down = new TH1F("smd_ver_south_corrected_down", "Center-Corrected Neutron centroid distribution, SMD South x, Spin Down", nbins_xy, -5.5, 5.5); */
 
-  // phi distributions for asymmetry
-  smd_north_phi_up = new TH1F("smd_north_phi_up", "Spin-up #phi distribution, SMD North;#phi;Counts", 8, -PI, PI);
-  smd_north_phi_down = new TH1F("smd_north_phi_down", "Spin-down #phi distribution, SMD North;#phi;Counts", 8, -PI, PI);
-  smd_north_phi_sum = new TH1F("smd_north_phi_sum", "Up+Down #phi distribution, SMD North;#phi;Counts", 8, -PI, PI);
-  smd_north_phi_diff = new TH1F("smd_north_phi_diff", "Up-Down #phi distribution, SMD North;#phi;Counts", 8, -PI, PI);
-  smd_north_phi_L_up = new TH1F("smd_north_phi_L_up", "Spin-up #phi distribution, SMD North;#phi;Counts", 8, -PI, 0.0);
-  smd_north_phi_L_down = new TH1F("smd_north_phi_L_down", "Spin-down #phi distribution, SMD North;#phi;Counts", 8, -PI, 0.0);
-  smd_north_phi_R_up = new TH1F("smd_north_phi_R_up", "Spin-up #phi distribution, SMD North;#phi;Counts", 8, 0.0, PI);
-  smd_north_phi_R_down = new TH1F("smd_north_phi_R_down", "Spin-down #phi distribution, SMD North;#phi;Counts", 8, 0.0, PI);
-  smd_south_phi_up = new TH1F("smd_south_phi_up", "Spin-up #phi distribution, SMD South;#phi;Counts", 8, -PI, PI);
-  smd_south_phi_down = new TH1F("smd_south_phi_down", "Spin-down #phi distribution, SMD South;#phi;Counts", 8, -PI, PI);
-  smd_south_phi_sum = new TH1F("smd_south_phi_sum", "Up+Down #phi distribution, SMD South;#phi;Counts", 8, -PI, PI);
-  smd_south_phi_diff = new TH1F("smd_south_phi_diff", "Up-Down #phi distribution, SMD South;#phi;Counts", 8, -PI, PI);
-  smd_south_phi_L_up = new TH1F("smd_south_phi_L_up", "Spin-up #phi distribution, SMD South;#phi;Counts", 8, -PI, 0.0);
-  smd_south_phi_L_down = new TH1F("smd_south_phi_L_down", "Spin-down #phi distribution, SMD South;#phi;Counts", 8, -PI, 0.0);
-  smd_south_phi_R_up = new TH1F("smd_south_phi_R_up", "Spin-up #phi distribution, SMD South;#phi;Counts", 8, 0.0, PI);
-  smd_south_phi_R_down = new TH1F("smd_south_phi_R_down", "Spin-down #phi distribution, SMD South;#phi;Counts", 8, 0.0, PI);
+  /* // phi distributions for asymmetry */
+  /* smd_north_phi_up = new TH1F("smd_north_phi_up", "Spin-up #phi distribution, SMD North;#phi;Counts", 8, -PI, PI); */
+  /* smd_north_phi_down = new TH1F("smd_north_phi_down", "Spin-down #phi distribution, SMD North;#phi;Counts", 8, -PI, PI); */
+  /* smd_north_phi_sum = new TH1F("smd_north_phi_sum", "Up+Down #phi distribution, SMD North;#phi;Counts", 8, -PI, PI); */
+  /* smd_north_phi_diff = new TH1F("smd_north_phi_diff", "Up-Down #phi distribution, SMD North;#phi;Counts", 8, -PI, PI); */
+  /* smd_north_phi_L_up = new TH1F("smd_north_phi_L_up", "Spin-up #phi distribution, SMD North;#phi;Counts", 8, -PI, 0.0); */
+  /* smd_north_phi_L_down = new TH1F("smd_north_phi_L_down", "Spin-down #phi distribution, SMD North;#phi;Counts", 8, -PI, 0.0); */
+  /* smd_north_phi_R_up = new TH1F("smd_north_phi_R_up", "Spin-up #phi distribution, SMD North;#phi;Counts", 8, 0.0, PI); */
+  /* smd_north_phi_R_down = new TH1F("smd_north_phi_R_down", "Spin-down #phi distribution, SMD North;#phi;Counts", 8, 0.0, PI); */
+  /* smd_south_phi_up = new TH1F("smd_south_phi_up", "Spin-up #phi distribution, SMD South;#phi;Counts", 8, -PI, PI); */
+  /* smd_south_phi_down = new TH1F("smd_south_phi_down", "Spin-down #phi distribution, SMD South;#phi;Counts", 8, -PI, PI); */
+  /* smd_south_phi_sum = new TH1F("smd_south_phi_sum", "Up+Down #phi distribution, SMD South;#phi;Counts", 8, -PI, PI); */
+  /* smd_south_phi_diff = new TH1F("smd_south_phi_diff", "Up-Down #phi distribution, SMD South;#phi;Counts", 8, -PI, PI); */
+  /* smd_south_phi_L_up = new TH1F("smd_south_phi_L_up", "Spin-up #phi distribution, SMD South;#phi;Counts", 8, -PI, 0.0); */
+  /* smd_south_phi_L_down = new TH1F("smd_south_phi_L_down", "Spin-down #phi distribution, SMD South;#phi;Counts", 8, -PI, 0.0); */
+  /* smd_south_phi_R_up = new TH1F("smd_south_phi_R_up", "Spin-up #phi distribution, SMD South;#phi;Counts", 8, 0.0, PI); */
+  /* smd_south_phi_R_down = new TH1F("smd_south_phi_R_down", "Spin-down #phi distribution, SMD South;#phi;Counts", 8, 0.0, PI); */
 
-  // beam center correction
-  smd_north_phi_up_corrected = new TH1F("smd_north_phi_up_corrected", "Center-Corrected Spin-up #phi distribution, SMD North;#phi;Counts", 8, -PI, PI);
-  smd_north_phi_down_corrected = new TH1F("smd_north_phi_down_corrected", "Center-Corrected Spin-down #phi distribution, SMD North;#phi;Counts", 8, -PI, PI);
-  smd_north_phi_sum_corrected = new TH1F("smd_north_phi_sum_corrected", "Center-Corrected Up+Down #phi distribution, SMD North;#phi;Counts", 8, -PI, PI);
-  smd_north_phi_diff_corrected = new TH1F("smd_north_phi_diff_corrected", "Center-Corrected Up-Down #phi distribution, SMD North;#phi;Counts", 8, -PI, PI);
-  smd_north_phi_L_up_corrected = new TH1F("smd_north_phi_L_up_corrected", "Center-Corrected Spin-up #phi distribution, SMD North;#phi;Counts", 8, -PI, 0.0);
-  smd_north_phi_L_down_corrected = new TH1F("smd_north_phi_L_down_corrected", "Center-Corrected Spin-down #phi distribution, SMD North;#phi;Counts", 8, -PI, 0.0);
-  smd_north_phi_R_up_corrected = new TH1F("smd_north_phi_R_up_corrected", "Center-Corrected Spin-up #phi distribution, SMD North;#phi;Counts", 8, 0.0, PI);
-  smd_north_phi_R_down_corrected = new TH1F("smd_north_phi_R_down_corrected", "Center-Corrected Spin-down #phi distribution, SMD North;#phi;Counts", 8, 0.0, PI);
-  smd_south_phi_up_corrected = new TH1F("smd_south_phi_up_corrected", "Center-Corrected Spin-up #phi distribution, SMD South;#phi;Counts", 8, -PI, PI);
-  smd_south_phi_down_corrected = new TH1F("smd_south_phi_down_corrected", "Center-Corrected Spin-down #phi distribution, SMD South;#phi;Counts", 8, -PI, PI);
-  smd_south_phi_sum_corrected = new TH1F("smd_south_phi_sum_corrected", "Center-Corrected Up+Down #phi distribution, SMD South;#phi;Counts", 8, -PI, PI);
-  smd_south_phi_diff_corrected = new TH1F("smd_south_phi_diff_corrected", "Center-Corrected Up-Down #phi distribution, SMD South;#phi;Counts", 8, -PI, PI);
-  smd_south_phi_L_up_corrected = new TH1F("smd_south_phi_L_up_corrected", "Center-Corrected Spin-up #phi distribution, SMD South;#phi;Counts", 8, -PI, 0.0);
-  smd_south_phi_L_down_corrected = new TH1F("smd_south_phi_L_down_corrected", "Center-Corrected Spin-down #phi distribution, SMD South;#phi;Counts", 8, -PI, 0.0);
-  smd_south_phi_R_up_corrected = new TH1F("smd_south_phi_R_up_corrected", "Center-Corrected Spin-up #phi distribution, SMD South;#phi;Counts", 8, 0.0, PI);
-  smd_south_phi_R_down_corrected = new TH1F("smd_south_phi_R_down_corrected", "Center-Corrected Spin-down #phi distribution, SMD South;#phi;Counts", 8, 0.0, PI);
+  /* // beam center correction */
+  /* smd_north_phi_up_corrected = new TH1F("smd_north_phi_up_corrected", "Center-Corrected Spin-up #phi distribution, SMD North;#phi;Counts", 8, -PI, PI); */
+  /* smd_north_phi_down_corrected = new TH1F("smd_north_phi_down_corrected", "Center-Corrected Spin-down #phi distribution, SMD North;#phi;Counts", 8, -PI, PI); */
+  /* smd_north_phi_sum_corrected = new TH1F("smd_north_phi_sum_corrected", "Center-Corrected Up+Down #phi distribution, SMD North;#phi;Counts", 8, -PI, PI); */
+  /* smd_north_phi_diff_corrected = new TH1F("smd_north_phi_diff_corrected", "Center-Corrected Up-Down #phi distribution, SMD North;#phi;Counts", 8, -PI, PI); */
+  /* smd_north_phi_L_up_corrected = new TH1F("smd_north_phi_L_up_corrected", "Center-Corrected Spin-up #phi distribution, SMD North;#phi;Counts", 8, -PI, 0.0); */
+  /* smd_north_phi_L_down_corrected = new TH1F("smd_north_phi_L_down_corrected", "Center-Corrected Spin-down #phi distribution, SMD North;#phi;Counts", 8, -PI, 0.0); */
+  /* smd_north_phi_R_up_corrected = new TH1F("smd_north_phi_R_up_corrected", "Center-Corrected Spin-up #phi distribution, SMD North;#phi;Counts", 8, 0.0, PI); */
+  /* smd_north_phi_R_down_corrected = new TH1F("smd_north_phi_R_down_corrected", "Center-Corrected Spin-down #phi distribution, SMD North;#phi;Counts", 8, 0.0, PI); */
+  /* smd_south_phi_up_corrected = new TH1F("smd_south_phi_up_corrected", "Center-Corrected Spin-up #phi distribution, SMD South;#phi;Counts", 8, -PI, PI); */
+  /* smd_south_phi_down_corrected = new TH1F("smd_south_phi_down_corrected", "Center-Corrected Spin-down #phi distribution, SMD South;#phi;Counts", 8, -PI, PI); */
+  /* smd_south_phi_sum_corrected = new TH1F("smd_south_phi_sum_corrected", "Center-Corrected Up+Down #phi distribution, SMD South;#phi;Counts", 8, -PI, PI); */
+  /* smd_south_phi_diff_corrected = new TH1F("smd_south_phi_diff_corrected", "Center-Corrected Up-Down #phi distribution, SMD South;#phi;Counts", 8, -PI, PI); */
+  /* smd_south_phi_L_up_corrected = new TH1F("smd_south_phi_L_up_corrected", "Center-Corrected Spin-up #phi distribution, SMD South;#phi;Counts", 8, -PI, 0.0); */
+  /* smd_south_phi_L_down_corrected = new TH1F("smd_south_phi_L_down_corrected", "Center-Corrected Spin-down #phi distribution, SMD South;#phi;Counts", 8, -PI, 0.0); */
+  /* smd_south_phi_R_up_corrected = new TH1F("smd_south_phi_R_up_corrected", "Center-Corrected Spin-up #phi distribution, SMD South;#phi;Counts", 8, 0.0, PI); */
+  /* smd_south_phi_R_down_corrected = new TH1F("smd_south_phi_R_down_corrected", "Center-Corrected Spin-down #phi distribution, SMD South;#phi;Counts", 8, 0.0, PI); */
 
   // Set relative gain values to unity for now
   for (int i=0; i<16; i++) {
@@ -278,7 +301,11 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
   {
     bunchNum = gl1->getBunchNumber();
     bunchNum = (bunchNum + crossingShift)%NBUNCHES;
-    /* std::cout << "Got bunch number = " << bunchNum << std::endl; */
+    std::cout << "Got bunch number = " << bunchNum << std::endl;
+    gl1evtseq = gl1->getEvtSequence();
+    gl1bco_old = gl1bco_new;
+    gl1bco_new = gl1->getBCO();
+    gl1bco_diff = gl1bco_new - gl1bco_old;
   }
   else
   {
@@ -288,229 +315,33 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
   }
   /* gl1event++; */
   /* std::cout << Form("evtctr=%d, gl1event=%d, smdevent=%d", evtctr, gl1event, smdevent) << std::endl; */
+
+  // Spin directions
+  bspin = spinPatternBlue[bunchNum];
+  yspin = spinPatternYellow[bunchNum];
   
-  // To account for the GL1-ZDC event # mismatch:
-  // Compute the position and asymmetry-related parts *before* getting the new
-  // ADC values for this event -- that way, the hit positions etc. are computed
-  // based on the *previous* event's ADC values
-
-  /* if (evtctr == 1) */
-  /* { */
-  /*   towerinfosZDC = findNode::getClass<TowerInfoContainer>(topNode, "TOWERS_ZDC"); */
-  /*   packetsZDC = findNode::getClass<CaloPacketContainerv1>(topNode, "ZDCPackets"); */
-  /*   GetAdcs(); */
-  /*   return Fun4AllReturnCodes::EVENT_OK; */
-  /* } */
-
-  /*
   // Get the ADC values
   towerinfosZDC = findNode::getClass<TowerInfoContainer>(topNode, "TOWERS_ZDC");
   packetsZDC = findNode::getClass<CaloPacketContainerv1>(topNode, "ZDCPackets");
   GetAdcs();
+
+  /*
+  // print out BCOs
+  if (evtctr == 1) std::cout << "GL1 EvtSeq\tZDC EvtSeq\t\t     GL1 BCO\t\t     ZDC BCO" << std::endl;
+  std::cout << Form("%10d\t%10d\t%20ld\t%20ld", gl1evtseq, zdcevtseq, gl1bco_diff, zdcbco_diff) << std::endl;
   */
 
   // call the functions
   CompSmdAdc();
   CompSmdPos();
-  /* std::cout << Form("Event %d start: smd_adc = {", evtctr); */
-  /* for (int i=0; i<15; i++) { */
-  /*     std::cout << smd_adc[i] << ", "; */
-  /* } */
-  /* std::cout << smd_adc[15] << "}" << std::endl; */
-  /* std::cout << Form("Event %d start: smd_time = {", evtctr); */
-  /* for (int i=0; i<15; i++) { */
-  /*     std::cout << smd_time[i] << ", "; */
-  /* } */
-  /* std::cout << smd_time[15] << "}" << std::endl; */
   CompSmdPosCorr();
   CompSumSmd();
   CountSMDHits();
-  if ((n_hor_numhits > minSMDhits) && (n_ver_numhits > minSMDhits))
-  {
-    smd_xy_all_north->Fill(smd_pos[1], smd_pos[0]);
-    smd_xy_all_corrected_north->Fill(smd_pos_corr[1], smd_pos_corr[0]);
-  }
-  if ((s_hor_numhits > minSMDhits) && (s_ver_numhits > minSMDhits))
-  {
-    smd_xy_all_south->Fill(smd_pos[3], smd_pos[2]);
-    smd_xy_all_corrected_south->Fill(smd_pos_corr[3], smd_pos_corr[2]);
-  }
-  bool n_neutron = NeutronSelection("north");
-  bool s_neutron = NeutronSelection("south");
+  n_neutron = NeutronSelection("north");
+  s_neutron = NeutronSelection("south");
 
-  // FILLING OUT THE HISTOGRAMS
-  if (n_neutron)
-  {
-    smd_hor_north->Fill(smd_pos[0]);
-    smd_ver_north->Fill(smd_pos[1]);
-    smd_sum_ver_north->Fill(smd_sum[1]);
-    smd_sum_hor_north->Fill(smd_sum[0]);
-    smd_xy_neutron_north->Fill(smd_pos[1], smd_pos[0]);
-    //std::cout<<" smd sum ver north = "<<smd_sum[1]<<std::endl;
-    //std::cout<<" smd sum hor north = "<<smd_sum[0]<<std::endl;
-
-    // SMD hits by channel
-    for ( int i = 0; i < 8; i++)
-    {
-      if ( smd_adc[i] > minSMDcut ) {smd_hor_north_neutron_hits->Fill(i);} 
-    }
-    for ( int i = 0; i < 7; i++)
-    {
-      if ( smd_adc[i + 8] > minSMDcut ) {smd_ver_north_neutron_hits->Fill(i);} 
-    }
-
-    // Separate spin up and down centroid positions
-    float north_x = smd_pos[1];
-    float north_y = smd_pos[0];
-    float north_phi = atan2(north_y, north_x);
-    int blueSpin = spinPatternBlue[bunchNum];
-    if (blueSpin == 1)
-    {
-      smd_hor_north_up->Fill(north_y);
-      smd_ver_north_up->Fill(north_x);
-      smd_north_phi_up->Fill(north_phi);
-      smd_north_phi_L_up->Fill(north_phi);
-      smd_north_phi_R_up->Fill(north_phi);
-    }
-    if (blueSpin == -1)
-    {
-      smd_hor_north_down->Fill(north_y);
-      smd_ver_north_down->Fill(north_x);
-      smd_north_phi_down->Fill(north_phi);
-      smd_north_phi_L_down->Fill(north_phi);
-      smd_north_phi_R_down->Fill(north_phi);
-    }
-  }
-
-  bool n_neutron_corr = NeutronSelection("north", true);
-  if (n_neutron_corr)
-  {
-    smd_hor_north_corrected->Fill(smd_pos_corr[0]);
-    smd_ver_north_corrected->Fill(smd_pos_corr[1]);
-    smd_xy_neutron_corrected_north->Fill(smd_pos_corr[1], smd_pos_corr[0]);
-
-    // Separate spin up and down centroid positions
-    float north_x_corr = smd_pos_corr[1];
-    float north_y_corr = smd_pos_corr[0];
-    float north_phi_corr = atan2(north_y_corr, north_x_corr);
-    int blueSpin = spinPatternBlue[bunchNum];
-    if (blueSpin == 1)
-    {
-      smd_hor_north_corrected_up->Fill(north_y_corr);
-      smd_ver_north_corrected_up->Fill(north_x_corr);
-      smd_north_phi_up_corrected->Fill(north_phi_corr);
-      smd_north_phi_L_up_corrected->Fill(north_phi_corr);
-      smd_north_phi_R_up_corrected->Fill(north_phi_corr);
-    }
-    if (blueSpin == -1)
-    {
-      smd_hor_north_corrected_down->Fill(north_y_corr);
-      smd_ver_north_corrected_down->Fill(north_x_corr);
-      smd_north_phi_down_corrected->Fill(north_phi_corr);
-      smd_north_phi_L_down_corrected->Fill(north_phi_corr);
-      smd_north_phi_R_down_corrected->Fill(north_phi_corr);
-    }
-  }
-
-  if (s_neutron)
-  {
-    smd_hor_south->Fill(smd_pos[2]);
-    smd_ver_south->Fill(smd_pos[3]);
-    smd_sum_ver_south->Fill(smd_sum[3]);
-    smd_sum_hor_south->Fill(smd_sum[2]);
-    smd_xy_neutron_south->Fill(smd_pos[3], smd_pos[2]);
-    //std::cout<<" smd sum hor south = "<<smd_sum[2]<<std::endl;
-    //std::cout<<" smd sum ver south = "<<smd_sum[3]<<std::endl;
-
-    // SMD hits by channel
-    for ( int i = 0; i < 8; i++)
-    {
-      if ( smd_adc[i] > minSMDcut ) {smd_hor_south_neutron_hits->Fill(i);} 
-    }
-    for ( int i = 0; i < 7; i++)
-    {
-      if ( smd_adc[i + 8] > minSMDcut ) {smd_ver_south_neutron_hits->Fill(i);} 
-    }
-
-    // Separate spin up and down centroid positions
-    float south_x = smd_pos[3];
-    float south_y = smd_pos[2];
-    float south_phi = atan2(south_y, south_x);
-    int yellowSpin = spinPatternYellow[bunchNum];
-    if (yellowSpin == 1)
-    {
-      smd_hor_south_up->Fill(south_y);
-      smd_ver_south_up->Fill(south_x);
-      smd_south_phi_up->Fill(south_phi);
-      smd_south_phi_L_up->Fill(south_phi);
-      smd_south_phi_R_up->Fill(south_phi);
-    }
-    if (yellowSpin == -1)
-    {
-      smd_hor_south_down->Fill(south_y);
-      smd_ver_south_down->Fill(south_x);
-      smd_south_phi_down->Fill(south_phi);
-      smd_south_phi_L_down->Fill(south_phi);
-      smd_south_phi_R_down->Fill(south_phi);
-    }
-  }
-
-  bool s_neutron_corr = NeutronSelection("south", true);
-  if (s_neutron_corr)
-  {
-    smd_hor_south_corrected->Fill(smd_pos_corr[2]);
-    smd_ver_south_corrected->Fill(smd_pos_corr[3]);
-    smd_xy_neutron_corrected_south->Fill(smd_pos_corr[3], smd_pos_corr[2]);
-    //std::cout<<" smd sum hor south = "<<smd_sum[2]<<std::endl;
-    //std::cout<<" smd sum ver south = "<<smd_sum[3]<<std::endl;
-
-    // Separate spin up and down centroid positions
-    float south_x_corr = smd_pos_corr[3];
-    float south_y_corr = smd_pos_corr[2];
-    float south_phi_corr = atan2(south_y_corr, south_x_corr);
-    int yellowSpin = spinPatternYellow[bunchNum];
-    if (yellowSpin == 1)
-    {
-      smd_hor_south_corrected_up->Fill(south_y_corr);
-      smd_ver_south_corrected_up->Fill(south_x_corr);
-      smd_south_phi_up_corrected->Fill(south_phi_corr);
-      smd_south_phi_L_up_corrected->Fill(south_phi_corr);
-      smd_south_phi_R_up_corrected->Fill(south_phi_corr);
-    }
-    if (yellowSpin == -1)
-    {
-      smd_hor_south_corrected_down->Fill(south_y_corr);
-      smd_ver_south_corrected_down->Fill(south_x_corr);
-      smd_south_phi_down_corrected->Fill(south_phi_corr);
-      smd_south_phi_L_down_corrected->Fill(south_phi_corr);
-      smd_south_phi_R_down_corrected->Fill(south_phi_corr);
-    }
-  }
-
-  // Now update the ADC values for the next event
-  towerinfosZDC = findNode::getClass<TowerInfoContainer>(topNode, "TOWERS_ZDC");
-  packetsZDC = findNode::getClass<CaloPacketContainerv1>(topNode, "ZDCPackets");
-  GetAdcs();
-  /* smdevent++; */
-  /* CompSmdPos(); */
-  /* std::cout << Form("Event %d end: smd_adc = {", evtctr); */
-  /* for (int i=0; i<15; i++) { */
-  /*     std::cout << smd_adc[i] << ", "; */
-  /* } */
-  /* std::cout << smd_adc[15] << "}" << std::endl; */
-  /* std::cout << Form("Event %d end: smd_time = {", evtctr); */
-  /* for (int i=0; i<15; i++) { */
-  /*     std::cout << smd_time[i] << ", "; */
-  /* } */
-  /* std::cout << smd_time[15] << "}" << std::endl; */
-  /* Gl1Packetv1* gl1 = findNode::getClass<Gl1Packetv1>(topNode, "GL1Packet"); */
-  /* if (gl1) */
-  /* { */
-  /*   bunchNum = gl1->getBunchNumber(); */
-  /*   bunchNum = (bunchNum + crossingShift)%NBUNCHES; */
-  /*   /1* std::cout << "Got bunch number = " << bunchNum << std::endl; *1/ */
-  /* } */
-
+  std::cout << "Filling tree with bunchNum=" << bunchNum << std::endl;
+  smdTree->Fill();
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -534,81 +365,8 @@ int SmdHistGen::End(PHCompositeNode *topNode)
   std::cout << "SmdHistGen::End(PHCompositeNode *topNode) This is the End..." << std::endl;
   std::cout << "Processed " << evtctr << " total events" << std::endl;
 
-  // Raw asymmetry
-  smd_north_phi_up->Sumw2();
-  smd_north_phi_down->Sumw2();
-  smd_north_phi_sum->Add(smd_north_phi_up, smd_north_phi_down, 1.0, 1.0);
-  smd_north_phi_diff->Add(smd_north_phi_up, smd_north_phi_down, 1.0, -1.0);
-  smd_south_phi_up->Sumw2();
-  smd_south_phi_down->Sumw2();
-  smd_south_phi_sum->Add(smd_south_phi_up, smd_south_phi_down, 1.0, 1.0);
-  smd_south_phi_diff->Add(smd_south_phi_up, smd_south_phi_down, 1.0, -1.0);
-  smd_north_phi_up_corrected->Sumw2();
-  smd_north_phi_down_corrected->Sumw2();
-  smd_north_phi_sum_corrected->Add(smd_north_phi_up_corrected, smd_north_phi_down_corrected, 1.0, 1.0);
-  smd_north_phi_diff_corrected->Add(smd_north_phi_up_corrected, smd_north_phi_down_corrected, 1.0, -1.0);
-  smd_south_phi_up_corrected->Sumw2();
-  smd_south_phi_down_corrected->Sumw2();
-  smd_south_phi_sum_corrected->Add(smd_south_phi_up_corrected, smd_south_phi_down_corrected, 1.0, 1.0);
-  smd_south_phi_diff_corrected->Add(smd_south_phi_up_corrected, smd_south_phi_down_corrected, 1.0, -1.0);
-
-  // Plot some histograms
-  /*
-  gStyle->SetOptStat(0);
-  TCanvas* c1 = new TCanvas("c1", "c1", 800, 800);
-  c1->cd();
-  smd_hor_north->SetLineColor(kBlack);
-  smd_hor_north_up->SetLineColor(kBlue);
-  smd_hor_north_down->SetLineColor(kRed);
-  smd_hor_north->Draw();
-  smd_hor_north_up->Draw("same");
-  smd_hor_north_down->Draw("same");
-  TLegend* leg = new TLegend(0.7, 0.7, 0.9, 0.9);
-  leg->AddEntry(smd_hor_north, "Total");
-  leg->AddEntry(smd_hor_north_up, "Spin up");
-  leg->AddEntry(smd_hor_north_down, "Spin down");
-  leg->Draw();
-  c1->Update();
-  c1->SaveAs("plots/smd_hor_north_42200.png");
-  delete leg;
-
-  smd_ver_north->SetLineColor(kBlack);
-  smd_ver_north_up->SetLineColor(kBlue);
-  smd_ver_north_down->SetLineColor(kRed);
-  smd_ver_north->Draw();
-  smd_ver_north_up->Draw("same");
-  smd_ver_north_down->Draw("same");
-  leg = new TLegend(0.7, 0.7, 0.9, 0.9);
-  leg->AddEntry(smd_ver_north, "Total");
-  leg->AddEntry(smd_ver_north_up, "Spin up");
-  leg->AddEntry(smd_ver_north_down, "Spin down");
-  leg->Draw();
-  c1->Update();
-  c1->SaveAs("plots/smd_ver_north_42200.png");
-  delete leg;
-
-  smd_hor_north_neutron_hits->Draw();
-  c1->Update();
-  c1->SaveAs("plots/smd_hor_neutron_hits_42200.png");
-  smd_ver_north_neutron_hits->Draw();
-  c1->Update();
-  c1->SaveAs("plots/smd_ver_neutron_hits_42200.png");
-
-  smd_north_waveforms->Draw("COLZ");
-  gPad->SetLogz();
-  c1->Update();
-  c1->SaveAs("plots/smd_waveforms_42200.png");
-  zdc_north_waveforms->Draw("COLZ");
-  gPad->SetLogz();
-  c1->Update();
-  c1->SaveAs("plots/zdc_waveforms_42200.png");
-  veto_north_waveforms->Draw("COLZ");
-  gPad->SetLogz();
-  c1->Update();
-  c1->SaveAs("plots/veto_waveforms_42200.png");
-  */
-
   outfile->cd();
+  smdTree->Write();
   outfile->Write();
   outfile->Close();
 
@@ -701,12 +459,12 @@ void SmdHistGen::GetAdcsDst()
       // 8,9 N1; 10,11 N2; 12,13 N3; 14,15 Nsum
       zdc_adc[channel] = zdc_e;
       zdc_time[channel] = zdc_t;
-      if (channel == 0) zdc1_south->Fill(zdc_e);
-      if (channel == 2) zdc2_south->Fill(zdc_e);
-      if (channel==0 || channel==2 || channel==4) zdc_south_waveforms->Fill(zdc_t, zdc_e);
-      if (channel == 8) zdc1_north->Fill(zdc_e);
-      if (channel == 10) zdc2_north->Fill(zdc_e);
-      if (channel==8 || channel==10 || channel==12) zdc_north_waveforms->Fill(zdc_t, zdc_e);
+      /* if (channel == 0) zdc1_south->Fill(zdc_e); */
+      /* if (channel == 2) zdc2_south->Fill(zdc_e); */
+      /* if (channel==0 || channel==2 || channel==4) zdc_south_waveforms->Fill(zdc_t, zdc_e); */
+      /* if (channel == 8) zdc1_north->Fill(zdc_e); */
+      /* if (channel == 10) zdc2_north->Fill(zdc_e); */
+      /* if (channel==8 || channel==10 || channel==12) zdc_north_waveforms->Fill(zdc_t, zdc_e); */
     }
     if (channel >= 16 && channel < 48) // SMD
     {
@@ -716,17 +474,17 @@ void SmdHistGen::GetAdcsDst()
       int smd_channel = channel - 16;
       if (smd_channel < 15)
       {
-	smd_north_signals[smd_channel]->Fill(zdc_e);
-	smd_north_waveforms->Fill(zdc_t, zdc_e);
-	smd_north_waveforms_zoomed->Fill(zdc_t, zdc_e);
-	smd_north_channel_waveforms[smd_channel]->Fill(zdc_t, zdc_e);
+	/* smd_north_signals[smd_channel]->Fill(zdc_e); */
+	/* smd_north_waveforms->Fill(zdc_t, zdc_e); */
+	/* smd_north_waveforms_zoomed->Fill(zdc_t, zdc_e); */
+	/* smd_north_channel_waveforms[smd_channel]->Fill(zdc_t, zdc_e); */
       }
       if (smd_channel > 15)
       {
-	smd_south_signals[smd_channel-16]->Fill(zdc_e);
-	smd_south_waveforms->Fill(zdc_t, zdc_e);
-	smd_south_waveforms_zoomed->Fill(zdc_t, zdc_e);
-	smd_south_channel_waveforms[smd_channel-16]->Fill(zdc_t, zdc_e);
+	/* smd_south_signals[smd_channel-16]->Fill(zdc_e); */
+	/* smd_south_waveforms->Fill(zdc_t, zdc_e); */
+	/* smd_south_waveforms_zoomed->Fill(zdc_t, zdc_e); */
+	/* smd_south_channel_waveforms[smd_channel-16]->Fill(zdc_t, zdc_e); */
       }
       // Set the ADC to 0 if we're below threshold or out of time
       if (zdc_e < minSMDcut) zdc_e = 0;
@@ -748,9 +506,9 @@ void SmdHistGen::GetAdcsDst()
       int veto_channel = channel - 48;
       veto_adc[veto_channel] = zdc_e;
       veto_time[veto_channel] = zdc_t;
-      if (veto_channel == 0) vetofront_north->Fill(zdc_e);
-      if (veto_channel == 1) vetoback_north->Fill(zdc_e);
-      if (veto_channel < 2) veto_north_waveforms->Fill(zdc_t, zdc_e);
+      /* if (veto_channel == 0) vetofront_north->Fill(zdc_e); */
+      /* if (veto_channel == 1) vetoback_north->Fill(zdc_e); */
+      /* if (veto_channel < 2) veto_north_waveforms->Fill(zdc_t, zdc_e); */
     }
   }
 }
@@ -765,6 +523,10 @@ void SmdHistGen::GetAdcsRaw()
   /* packetsZDC->identify(); */
   CaloPacket *packetZDC = packetsZDC->getPacketbyId(packet_smd);
   /* packetZDC->identify(); */
+  zdcevtseq = packetZDC->getEvtSequence();
+  zdcbco_old = zdcbco_new;
+  zdcbco_new = packetZDC->getBCO();
+  zdcbco_diff = zdcbco_new - zdcbco_old;
   
   int Nchannels = std::min(128, packetZDC->iValue(0, "CHANNELS"));
   for (int channel = 0; channel < Nchannels; channel++)
@@ -773,33 +535,40 @@ void SmdHistGen::GetAdcsRaw()
     std::vector<float> resultFast = anaWaveformFast(packetZDC, channel);  // fast waveform fitting
     float zdc_e = resultFast.at(0);
     float zdc_t = resultFast.at(1);
-    float zdc_ped = resultFast.at(2);
+    /* float zdc_ped = resultFast.at(2); */
 
     if (channel < 16) // ZDC
     {
+      if (zdc_t < zdc_t_low || zdc_t > zdc_t_high) {zdc_e = 0;}
       zdc_adc[channel] = zdc_e;
       zdc_time[channel] = zdc_t;
-      if (channel == 8) zdc1_north->Fill(zdc_e);
-      if (channel == 10) zdc2_north->Fill(zdc_e);
-      if (channel==8 || channel==10 || channel==12) zdc_north_waveforms->Fill(zdc_t, zdc_e);
+      if (channel == 0) s_zdc_1 = zdc_e;
+      if (channel == 2) s_zdc_2 = zdc_e;
+      if (channel == 8) n_zdc_1 = zdc_e;
+      if (channel == 10) n_zdc_2 = zdc_e;
+      /* if (channel==8 || channel==10 || channel==12) zdc_north_waveforms->Fill(zdc_t, zdc_e); */
       continue;
     }
 
     // North Veto counters
     if (channel == 16)
     {
+      if (zdc_t < veto_north_t_low || zdc_t > veto_north_t_high) {zdc_e = 9999;}
       veto_adc[0] = zdc_e;
       veto_time[0] = zdc_t;
-      vetofront_north->Fill(zdc_e);
-      veto_north_waveforms->Fill(zdc_t, zdc_e);
+      /* vetofront_north->Fill(zdc_e); */
+      /* veto_north_waveforms->Fill(zdc_t, zdc_e); */
+      n_veto_front = zdc_e;
       continue;
     }
     if (channel == 17)
     {
+      if (zdc_t < veto_north_t_low || zdc_t > veto_north_t_high) {zdc_e = 9999;}
       veto_adc[1] = zdc_e;
       veto_time[1] = zdc_t;
-      vetoback_north->Fill(zdc_e);
-      veto_north_waveforms->Fill(zdc_t, zdc_e);
+      /* vetoback_north->Fill(zdc_e); */
+      /* veto_north_waveforms->Fill(zdc_t, zdc_e); */
+      n_veto_back = zdc_e;
       continue;
     }
     
@@ -809,12 +578,12 @@ void SmdHistGen::GetAdcsRaw()
       int smd_channel = channel - 48;
       if (smd_channel < 15)
       {
-	smd_north_signal->Fill(zdc_e);
-	smd_north_signals[smd_channel]->Fill(zdc_e);
-	smd_north_waveforms->Fill(zdc_t, zdc_e);
-	smd_north_waveforms_zoomed->Fill(zdc_t, zdc_e);
-	smd_north_channel_waveforms[smd_channel]->Fill(zdc_t, zdc_e);
-	smd_north_pedestal->Fill(zdc_ped);
+	/* smd_north_signal->Fill(zdc_e); */
+	/* smd_north_signals[smd_channel]->Fill(zdc_e); */
+	/* smd_north_waveforms->Fill(zdc_t, zdc_e); */
+	/* smd_north_waveforms_zoomed->Fill(zdc_t, zdc_e); */
+	/* smd_north_channel_waveforms[smd_channel]->Fill(zdc_t, zdc_e); */
+	/* smd_north_pedestal->Fill(zdc_ped); */
       }
       // Set the ADC to 0 if we're below threshold or out of time
       if (zdc_e < minSMDcut) zdc_e = 0;
@@ -827,18 +596,22 @@ void SmdHistGen::GetAdcsRaw()
     // South Veto counters
     if (channel == 80)
     {
+      if (zdc_t < veto_south_t_low || zdc_t > veto_south_t_high) {zdc_e = 9999;}
       veto_adc[2] = zdc_e;
       veto_time[2] = zdc_t;
-      vetofront_south->Fill(zdc_e);
-      veto_south_waveforms->Fill(zdc_t, zdc_e);
+      /* vetofront_south->Fill(zdc_e); */
+      /* veto_south_waveforms->Fill(zdc_t, zdc_e); */
+      s_veto_front = zdc_e;
       continue;
     }
     if (channel == 81)
     {
+      if (zdc_t < veto_south_t_low || zdc_t > veto_south_t_high) {zdc_e = 9999;}
       veto_adc[3] = zdc_e;
       veto_time[3] = zdc_t;
-      vetoback_south->Fill(zdc_e);
-      veto_south_waveforms->Fill(zdc_t, zdc_e);
+      /* vetoback_south->Fill(zdc_e); */
+      /* veto_south_waveforms->Fill(zdc_t, zdc_e); */
+      s_veto_back = zdc_e;
       continue;
     }
 
@@ -848,12 +621,12 @@ void SmdHistGen::GetAdcsRaw()
       int smd_channel = channel - 112;
       if (smd_channel < 15)
       {
-	smd_south_signal->Fill(zdc_e);
-	smd_south_signals[smd_channel]->Fill(zdc_e);
-	smd_south_waveforms->Fill(zdc_t, zdc_e);
-	smd_south_waveforms_zoomed->Fill(zdc_t, zdc_e);
-	smd_south_channel_waveforms[smd_channel]->Fill(zdc_t, zdc_e);
-	smd_south_pedestal->Fill(zdc_ped);
+	/* smd_south_signal->Fill(zdc_e); */
+	/* smd_south_signals[smd_channel]->Fill(zdc_e); */
+	/* smd_south_waveforms->Fill(zdc_t, zdc_e); */
+	/* smd_south_waveforms_zoomed->Fill(zdc_t, zdc_e); */
+	/* smd_south_channel_waveforms[smd_channel]->Fill(zdc_t, zdc_e); */
+	/* smd_south_pedestal->Fill(zdc_ped); */
       }
       // Set the ADC to 0 if we're below threshold or out of time
       if (zdc_e < minSMDcut) zdc_e = 0;
@@ -951,6 +724,11 @@ void SmdHistGen::CompSmdPos() //computing position with weighted averages
   {
     smd_pos[3] = 0;
   }
+
+  n_y = smd_pos[0];
+  n_x = smd_pos[1];
+  s_y = smd_pos[2];
+  s_x = smd_pos[3];
 }
 
 void SmdHistGen::CompSmdPosCorr()
@@ -1013,12 +791,12 @@ void SmdHistGen::CountSMDHits()
       if (smd_time[i]>=smd_north_t_low && smd_time[i]<=smd_north_t_high)
       {
         n_hor_numhits ++;
-        smd_hor_north_total_hits->Fill(i);
+        /* smd_hor_north_total_hits->Fill(i); */
 	n_hor[i] = 0;
       }
     }
   }
-  smd_hor_north_multiplicity->Fill(n_hor_numhits);
+  /* smd_hor_north_multiplicity->Fill(n_hor_numhits); */
   for ( int i = 0; i < 7; i++)
   {
     n_ver[i] = 10*(i+1);
@@ -1028,12 +806,12 @@ void SmdHistGen::CountSMDHits()
       if (smd_time[i+8]>smd_north_t_low && smd_time[i+8]<=smd_north_t_high)
       {
         n_ver_numhits ++;
-	smd_ver_north_total_hits->Fill(i);
+	/* smd_ver_north_total_hits->Fill(i); */
 	n_ver[i] = 0;
       }
     }
   }
-  smd_ver_north_multiplicity->Fill(n_ver_numhits);
+  /* smd_ver_north_multiplicity->Fill(n_ver_numhits); */
 
   // south
   for ( int i = 0; i < 8; i++)
@@ -1044,12 +822,12 @@ void SmdHistGen::CountSMDHits()
       if ( smd_time[i+16]>=smd_south_t_low && smd_time[i+16]<=smd_south_t_high )
       {
 	s_hor_numhits++;
-	smd_hor_south_total_hits->Fill(i);
+	/* smd_hor_south_total_hits->Fill(i); */
 	s_hor[i] = 0;
       }
     }
   }
-  smd_hor_south_multiplicity->Fill(s_hor_numhits);
+  /* smd_hor_south_multiplicity->Fill(s_hor_numhits); */
   for ( int i = 0; i < 7; i++)
   {
     s_ver[i] = 10*(i+1);
@@ -1058,12 +836,12 @@ void SmdHistGen::CountSMDHits()
       if ( smd_time[i+24]>=smd_south_t_low && smd_time[i+24]<=smd_south_t_high )
       {
 	s_ver_numhits++;
-	smd_ver_south_total_hits->Fill(i);
+	/* smd_ver_south_total_hits->Fill(i); */
 	s_ver[i] = 0;
       }
     }
   }
-  smd_ver_south_multiplicity->Fill(s_ver_numhits);
+  /* smd_ver_south_multiplicity->Fill(s_ver_numhits); */
 
   n_hor_adjacent = CountAdjacentHits(n_hor);
   n_ver_adjacent = CountAdjacentHits(n_ver);
@@ -1088,7 +866,7 @@ bool SmdHistGen::NeutronSelection(std::string which, bool centerCorrected)
   // all hits in correct time window (north ZDC&Veto 5-8, north SMD 9-12)
   int frontveto, backveto, zdc1, zdc2, smdhitshor, smdhitsver;
   int frontveto_t, backveto_t, zdc1_t, zdc2_t, veto_t_low, veto_t_high;
-  float smd_x, smd_y;
+  float smd_x, smd_y, smd_hor_sum, smd_ver_sum;
   if (which == "north") {
     frontveto = veto_adc[0];
     backveto = veto_adc[1];
@@ -1109,6 +887,8 @@ bool SmdHistGen::NeutronSelection(std::string which, bool centerCorrected)
       smd_x = smd_pos_corr[1];
       smd_y = smd_pos_corr[0];
     }
+    smd_hor_sum = smd_sum[0];
+    smd_ver_sum = smd_sum[1];
   }
   else if (which == "south") {
     frontveto = veto_adc[2];
@@ -1130,6 +910,8 @@ bool SmdHistGen::NeutronSelection(std::string which, bool centerCorrected)
       smd_x = smd_pos_corr[3];
       smd_y = smd_pos_corr[2];
     }
+    smd_hor_sum = smd_sum[2];
+    smd_ver_sum = smd_sum[3];
   }
   else {
     std::cout << "NeutronSelection: invalid string " << which << std::endl;
@@ -1149,6 +931,7 @@ bool SmdHistGen::NeutronSelection(std::string which, bool centerCorrected)
   // SMD hit requirement
   if (smdhitshor < minSMDhits) {return false;}
   if (smdhitsver < minSMDhits) {return false;}
+  if ((smd_hor_sum + smd_ver_sum) < totalSMDcut) {return false;}
   // Radial position cut
   float r = sqrt(smd_x*smd_x + smd_y*smd_y);
   if (r < radius_low) {return false;}
@@ -1166,11 +949,11 @@ std::vector<float> SmdHistGen::anaWaveformFast(CaloPacket *p, const int channel)
     // fill waveform histograms
     if (channel >= 48 && channel < 63)
     {
-      smd_north_waveforms_raw->Fill(s, p->iValue(s, channel));
+      /* smd_north_waveforms_raw->Fill(s, p->iValue(s, channel)); */
     }
     if (channel >= 112 && channel < 127)
     {
-      smd_south_waveforms_raw->Fill(s, p->iValue(s, channel));
+      /* smd_south_waveforms_raw->Fill(s, p->iValue(s, channel)); */
     }
   }
   std::vector<std::vector<float>> multiple_wfs;

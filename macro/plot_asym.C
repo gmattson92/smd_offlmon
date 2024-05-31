@@ -134,6 +134,49 @@ void plot_xy(TCanvas* c, TH2* northxy, TH2* southxy, TH1** northx, TH1** southx)
     c->Update();
 }
 
+void plot_x(TCanvas* c, TH1** northx, TH1** southx) {
+    c->Clear();
+    gStyle->SetOptStat(1);
+    c->Divide(2, 1, 0.025, 0.025);
+    
+    c->cd(1);
+    northx[0]->Sumw2();
+    northx[0]->Scale(1.0/northx[0]->Integral());
+    northx[1]->Sumw2();
+    northx[1]->Scale(1.0/northx[1]->Integral());
+    northx[0]->SetLineColor(kRed);
+    northx[1]->SetLineColor(kBlue);
+    northx[0]->SetTitle("North SMD Neutron x");
+    northx[0]->GetYaxis()->SetTitle("Normalized Counts");
+    northx[0]->SetStats(0);
+    northx[0]->Draw("hist");
+    northx[1]->Draw("same hist");
+    TLatex* l = new TLatex;
+    l->SetTextColor(kRed);
+    l->DrawLatexNDC(0.7, 0.85, "Spin up");
+    l->SetTextColor(kBlue);
+    l->DrawLatexNDC(0.7, 0.80, "Spin down");
+
+    c->cd(2);
+    southx[0]->Sumw2();
+    southx[0]->Scale(1.0/southx[0]->Integral());
+    southx[1]->Sumw2();
+    southx[1]->Scale(1.0/southx[1]->Integral());
+    southx[0]->SetLineColor(kRed);
+    southx[1]->SetLineColor(kBlue);
+    southx[0]->SetTitle("South SMD Neutron x");
+    southx[0]->GetYaxis()->SetTitle("Normalized Counts");
+    southx[0]->SetStats(0);
+    southx[0]->Draw("hist");
+    southx[1]->Draw("same hist");
+    l->SetTextColor(kRed);
+    l->DrawLatexNDC(0.7, 0.85, "Spin up");
+    l->SetTextColor(kBlue);
+    l->DrawLatexNDC(0.7, 0.80, "Spin down");
+
+    c->Update();
+}
+
 void plot_multiplicity(TCanvas* c, TH1** hists) {
     c->Clear();
     gStyle->SetOptStat(0);
@@ -156,25 +199,26 @@ void plot_asym(const char* inname, std::string outname) {
     TCanvas* c1 = new TCanvas("c1", "c1", 800, 450);
 
     // hit multiplicities
-    TH1F* h_hor_north_multiplicity = (TH1F*)f->Get("smd_hor_north_multiplicity");
-    TH1F* h_ver_north_multiplicity = (TH1F*)f->Get("smd_ver_north_multiplicity");
-    TH1F* h_hor_south_multiplicity = (TH1F*)f->Get("smd_hor_south_multiplicity");
-    TH1F* h_ver_south_multiplicity = (TH1F*)f->Get("smd_ver_south_multiplicity");
-    TH1* multiplicities[] = {h_hor_north_multiplicity, h_ver_north_multiplicity, h_hor_south_multiplicity, h_ver_south_multiplicity};
-    plot_multiplicity(c1, multiplicities);
-    c1->SaveAs(outname_start.c_str());
+    /* TH1F* h_hor_north_multiplicity = (TH1F*)f->Get("smd_hor_north_multiplicity"); */
+    /* TH1F* h_ver_north_multiplicity = (TH1F*)f->Get("smd_ver_north_multiplicity"); */
+    /* TH1F* h_hor_south_multiplicity = (TH1F*)f->Get("smd_hor_south_multiplicity"); */
+    /* TH1F* h_ver_south_multiplicity = (TH1F*)f->Get("smd_ver_south_multiplicity"); */
+    /* TH1* multiplicities[] = {h_hor_north_multiplicity, h_ver_north_multiplicity, h_hor_south_multiplicity, h_ver_south_multiplicity}; */
+    /* plot_multiplicity(c1, multiplicities); */
+    /* c1->SaveAs(outname_start.c_str()); */
 
-    // beam centroid xy positions
-    TH2F* h_xy_north = (TH2F*)f->Get("smd_xy_neutron_north");
+    /* // beam centroid xy positions */
+    /* TH2F* h_xy_north = (TH2F*)f->Get("smd_xy_neutron_north"); */
     TH1F* h_ver_north_up = (TH1F*)f->Get("smd_ver_north_up");
     TH1F* h_ver_north_down = (TH1F*)f->Get("smd_ver_north_down");
-    TH2F* h_xy_south = (TH2F*)f->Get("smd_xy_neutron_south");
+    /* TH2F* h_xy_south = (TH2F*)f->Get("smd_xy_neutron_south"); */
     TH1F* h_ver_south_up = (TH1F*)f->Get("smd_ver_south_up");
     TH1F* h_ver_south_down = (TH1F*)f->Get("smd_ver_south_down");
     TH1* northx[] = {h_ver_north_up, h_ver_north_down};
     TH1* southx[] = {h_ver_south_up, h_ver_south_down};
-    plot_xy(c1, h_xy_north, h_xy_south, northx, southx);
-    c1->SaveAs(outname.c_str());
+    /* plot_xy(c1, h_xy_north, h_xy_south, northx, southx); */
+    plot_x(c1, northx, southx);
+    c1->SaveAs(outname_start.c_str());
 
     // simple asymmetry
     TH1F* h_phi_north_diff = (TH1F*)f->Get("smd_north_phi_diff");
@@ -213,53 +257,53 @@ void plot_asym(const char* inname, std::string outname) {
     plot_sqrt(p4, h_phi_south_L_up, h_phi_south_R_up, h_phi_south_L_down, h_phi_south_R_down, "South");
 
     c1->Update();
-    c1->SaveAs(outname.c_str());
-
-    // Beam center correction
-    // beam centroid xy positions
-    h_xy_north = (TH2F*)f->Get("smd_xy_neutron_corrected_north");
-    h_xy_south = (TH2F*)f->Get("smd_xy_neutron_corrected_south");
-    h_ver_north_up = (TH1F*)f->Get("smd_ver_north_corrected_up");
-    h_ver_north_down = (TH1F*)f->Get("smd_ver_north_corrected_down");
-    h_ver_south_up = (TH1F*)f->Get("smd_ver_south_corrected_up");
-    h_ver_south_down = (TH1F*)f->Get("smd_ver_south_corrected_down");
-    northx[0] = h_ver_north_up;
-    northx[1] = h_ver_north_down;
-    southx[0] = h_ver_south_up;
-    southx[1] = h_ver_south_down;
-    plot_xy(c1, h_xy_north, h_xy_south, northx, southx);
-    c1->SaveAs(outname.c_str());
-
-    // simple asymmetry
-    h_phi_north_diff = (TH1F*)f->Get("smd_north_phi_diff_corrected");
-    h_phi_north_sum = (TH1F*)f->Get("smd_north_phi_sum_corrected");
-    h_phi_south_diff = (TH1F*)f->Get("smd_south_phi_diff_corrected");
-    h_phi_south_sum = (TH1F*)f->Get("smd_south_phi_sum_corrected");
-    
-    // sqrt asymmetry
-    h_phi_north_L_up = (TH1F*)f->Get("smd_north_phi_L_up_corrected");
-    h_phi_north_L_down = (TH1F*)f->Get("smd_north_phi_L_down_corrected");
-    h_phi_north_R_up = (TH1F*)f->Get("smd_north_phi_R_up_corrected");
-    h_phi_north_R_down = (TH1F*)f->Get("smd_north_phi_R_down_corrected");
-    h_phi_south_L_up = (TH1F*)f->Get("smd_south_phi_L_up_corrected");
-    h_phi_south_L_down = (TH1F*)f->Get("smd_south_phi_L_down_corrected");
-    h_phi_south_R_up = (TH1F*)f->Get("smd_south_phi_R_up_corrected");
-    h_phi_south_R_down = (TH1F*)f->Get("smd_south_phi_R_down_corrected");
-
-    c1->Clear();
-    c1->Divide(2, 2, 0.025, 0.025);
-    p1 = (TPad*)c1->GetPad(1);
-    p2 = (TPad*)c1->GetPad(2);
-    p3 = (TPad*)c1->GetPad(3);
-    p4 = (TPad*)c1->GetPad(4);
-
-    plot_simple(p1, h_phi_north_diff, h_phi_north_sum, "Center-Corrected North");
-    plot_simple(p3, h_phi_south_diff, h_phi_south_sum, "Center-Corrected South");
-    plot_sqrt(p2, h_phi_north_L_up, h_phi_north_R_up, h_phi_north_L_down, h_phi_north_R_down, "Center-Corrected North");
-    plot_sqrt(p4, h_phi_south_L_up, h_phi_south_R_up, h_phi_south_L_down, h_phi_south_R_down, "Center-Corrected South");
-
-    c1->Update();
     c1->SaveAs(outname_end.c_str());
+
+    /* // Beam center correction */
+    /* // beam centroid xy positions */
+    /* h_xy_north = (TH2F*)f->Get("smd_xy_neutron_corrected_north"); */
+    /* h_xy_south = (TH2F*)f->Get("smd_xy_neutron_corrected_south"); */
+    /* h_ver_north_up = (TH1F*)f->Get("smd_ver_north_corrected_up"); */
+    /* h_ver_north_down = (TH1F*)f->Get("smd_ver_north_corrected_down"); */
+    /* h_ver_south_up = (TH1F*)f->Get("smd_ver_south_corrected_up"); */
+    /* h_ver_south_down = (TH1F*)f->Get("smd_ver_south_corrected_down"); */
+    /* northx[0] = h_ver_north_up; */
+    /* northx[1] = h_ver_north_down; */
+    /* southx[0] = h_ver_south_up; */
+    /* southx[1] = h_ver_south_down; */
+    /* plot_xy(c1, h_xy_north, h_xy_south, northx, southx); */
+    /* c1->SaveAs(outname.c_str()); */
+
+    /* // simple asymmetry */
+    /* h_phi_north_diff = (TH1F*)f->Get("smd_north_phi_diff_corrected"); */
+    /* h_phi_north_sum = (TH1F*)f->Get("smd_north_phi_sum_corrected"); */
+    /* h_phi_south_diff = (TH1F*)f->Get("smd_south_phi_diff_corrected"); */
+    /* h_phi_south_sum = (TH1F*)f->Get("smd_south_phi_sum_corrected"); */
+    
+    /* // sqrt asymmetry */
+    /* h_phi_north_L_up = (TH1F*)f->Get("smd_north_phi_L_up_corrected"); */
+    /* h_phi_north_L_down = (TH1F*)f->Get("smd_north_phi_L_down_corrected"); */
+    /* h_phi_north_R_up = (TH1F*)f->Get("smd_north_phi_R_up_corrected"); */
+    /* h_phi_north_R_down = (TH1F*)f->Get("smd_north_phi_R_down_corrected"); */
+    /* h_phi_south_L_up = (TH1F*)f->Get("smd_south_phi_L_up_corrected"); */
+    /* h_phi_south_L_down = (TH1F*)f->Get("smd_south_phi_L_down_corrected"); */
+    /* h_phi_south_R_up = (TH1F*)f->Get("smd_south_phi_R_up_corrected"); */
+    /* h_phi_south_R_down = (TH1F*)f->Get("smd_south_phi_R_down_corrected"); */
+
+    /* c1->Clear(); */
+    /* c1->Divide(2, 2, 0.025, 0.025); */
+    /* p1 = (TPad*)c1->GetPad(1); */
+    /* p2 = (TPad*)c1->GetPad(2); */
+    /* p3 = (TPad*)c1->GetPad(3); */
+    /* p4 = (TPad*)c1->GetPad(4); */
+
+    /* plot_simple(p1, h_phi_north_diff, h_phi_north_sum, "Center-Corrected North"); */
+    /* plot_simple(p3, h_phi_south_diff, h_phi_south_sum, "Center-Corrected South"); */
+    /* plot_sqrt(p2, h_phi_north_L_up, h_phi_north_R_up, h_phi_north_L_down, h_phi_north_R_down, "Center-Corrected North"); */
+    /* plot_sqrt(p4, h_phi_south_L_up, h_phi_south_R_up, h_phi_south_L_down, h_phi_south_R_down, "Center-Corrected South"); */
+
+    /* c1->Update(); */
+    /* c1->SaveAs(outname_end.c_str()); */
 
     return 0;
 }

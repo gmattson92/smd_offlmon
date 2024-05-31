@@ -65,7 +65,8 @@ class SmdHistGen : public SubsysReco
  private:
   std::string mode;
   const char* outfilename;
-  TFile *outfile;
+  TFile *outfile = nullptr;
+  TTree *smdTree = nullptr;
 
   void GetRunNumber();
   int GetSpinPatterns();
@@ -89,11 +90,23 @@ class SmdHistGen : public SubsysReco
   const int packet_yellow = 14903;
   const int packet_smd = 12001;
 
+  // GL1-ZDC event offset testing
+  int gl1evtseq = 0;
+  int zdcevtseq = 0;
+  uint64_t gl1bco_old = 0;
+  uint64_t gl1bco_new = 0;
+  uint64_t gl1bco_diff = 0;
+  uint64_t zdcbco_old = 0;
+  uint64_t zdcbco_new = 0;
+  uint64_t zdcbco_diff = 0;
+
   // spin info
   int spinPatternBlue[NBUNCHES] = {0};
   int spinPatternYellow[NBUNCHES] = {0};
-  int bunchNum = 0;
+  uint64_t bunchNum = 0;
   int crossingShift = 0;
+  int bspin = 0;
+  int yspin = 0;
 
   // run and ZDC containers
   RunHeaderv1 *runHeader = nullptr;
@@ -125,8 +138,26 @@ class SmdHistGen : public SubsysReco
   int s_hor_numhits = 0;
   int s_ver_numhits = 0;
 
+  float n_zdc_1 = 0.0;
+  float n_zdc_2 = 0.0;
+  float n_veto_front = 0.0;
+  float n_veto_back = 0.0;
+  float s_zdc_1 = 0.0;
+  float s_zdc_2 = 0.0;
+  float s_veto_front = 0.0;
+  float s_veto_back = 0.0;
+
+  float n_x = 0.0;
+  float n_y = 0.0;
+  float s_x = 0.0;
+  float s_y = 0.0;
+
+  bool n_neutron = false;
+  bool s_neutron = false;
+
   // ADC and timing cuts
   int minSMDcut = 5;
+  int totalSMDcut = 50;
   int minZDC1cut = 100;
   int minZDC2cut = 15;
   int maxVetocut = 150;
