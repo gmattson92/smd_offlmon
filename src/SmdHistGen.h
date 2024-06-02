@@ -103,7 +103,7 @@ class SmdHistGen : public SubsysReco
   // spin info
   int spinPatternBlue[NBUNCHES] = {0};
   int spinPatternYellow[NBUNCHES] = {0};
-  uint64_t bunchNum = 0;
+  int bunchNum = 0;
   int crossingShift = 0;
   int bspin = 0;
   int yspin = 0;

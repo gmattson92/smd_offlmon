@@ -225,6 +225,10 @@ void plot_asym(const char* inname, std::string outname) {
     TH1F* h_phi_north_sum = (TH1F*)f->Get("smd_north_phi_sum");
     TH1F* h_phi_south_diff = (TH1F*)f->Get("smd_south_phi_diff");
     TH1F* h_phi_south_sum = (TH1F*)f->Get("smd_south_phi_sum");
+    TH1F* h_phi_north_diff_backward = (TH1F*)f->Get("smd_north_phi_diff_backward");
+    TH1F* h_phi_north_sum_backward = (TH1F*)f->Get("smd_north_phi_sum_backward");
+    TH1F* h_phi_south_diff_backward = (TH1F*)f->Get("smd_south_phi_diff_backward");
+    TH1F* h_phi_south_sum_backward = (TH1F*)f->Get("smd_south_phi_sum_backward");
 
     // Error testing
     /* TH1F* h_phi_north_up = (TH1F*)f->Get("smd_north_phi_up"); */
@@ -243,6 +247,14 @@ void plot_asym(const char* inname, std::string outname) {
     TH1F* h_phi_south_L_down = (TH1F*)f->Get("smd_south_phi_L_down");
     TH1F* h_phi_south_R_up = (TH1F*)f->Get("smd_south_phi_R_up");
     TH1F* h_phi_south_R_down = (TH1F*)f->Get("smd_south_phi_R_down");
+    TH1F* h_phi_north_L_up_backward = (TH1F*)f->Get("smd_north_phi_L_up_backward");
+    TH1F* h_phi_north_L_down_backward = (TH1F*)f->Get("smd_north_phi_L_down_backward");
+    TH1F* h_phi_north_R_up_backward = (TH1F*)f->Get("smd_north_phi_R_up_backward");
+    TH1F* h_phi_north_R_down_backward = (TH1F*)f->Get("smd_north_phi_R_down_backward");
+    TH1F* h_phi_south_L_up_backward = (TH1F*)f->Get("smd_south_phi_L_up_backward");
+    TH1F* h_phi_south_L_down_backward = (TH1F*)f->Get("smd_south_phi_L_down_backward");
+    TH1F* h_phi_south_R_up_backward = (TH1F*)f->Get("smd_south_phi_R_up_backward");
+    TH1F* h_phi_south_R_down_backward = (TH1F*)f->Get("smd_south_phi_R_down_backward");
 
     c1->Clear();
     c1->Divide(2, 2, 0.025, 0.025);
@@ -251,10 +263,16 @@ void plot_asym(const char* inname, std::string outname) {
     TPad* p3 = (TPad*)c1->GetPad(3);
     TPad* p4 = (TPad*)c1->GetPad(4);
 
-    plot_simple(p1, h_phi_north_diff, h_phi_north_sum, "North");
-    plot_simple(p3, h_phi_south_diff, h_phi_south_sum, "South");
-    plot_sqrt(p2, h_phi_north_L_up, h_phi_north_R_up, h_phi_north_L_down, h_phi_north_R_down, "North");
-    plot_sqrt(p4, h_phi_south_L_up, h_phi_south_R_up, h_phi_south_L_down, h_phi_south_R_down, "South");
+    plot_simple(p1, h_phi_north_diff, h_phi_north_sum, "Blue North");
+    plot_simple(p3, h_phi_south_diff, h_phi_south_sum, "Yellow South");
+    plot_sqrt(p2, h_phi_north_L_up, h_phi_north_R_up, h_phi_north_L_down, h_phi_north_R_down, "Blue North");
+    plot_sqrt(p4, h_phi_south_L_up, h_phi_south_R_up, h_phi_south_L_down, h_phi_south_R_down, "Yellow South");
+    c1->Update();
+    c1->SaveAs(outname.c_str());
+    plot_simple(p1, h_phi_north_diff_backward, h_phi_north_sum_backward, "Yellow North");
+    plot_simple(p3, h_phi_south_diff_backward, h_phi_south_sum_backward, "Blue South");
+    plot_sqrt(p2, h_phi_north_L_up_backward, h_phi_north_R_up_backward, h_phi_north_L_down_backward, h_phi_north_R_down_backward, "Yellow North");
+    plot_sqrt(p4, h_phi_south_L_up_backward, h_phi_south_R_up_backward, h_phi_south_L_down_backward, h_phi_south_R_down_backward, "Blue South");
 
     c1->Update();
     c1->SaveAs(outname_end.c_str());

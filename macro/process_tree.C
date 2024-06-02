@@ -20,7 +20,7 @@ int process_tree(const char* infilename, const char* outfilename) {
     TFile* f = new TFile(infilename, "READ");
     TTree* smdTree = (TTree*)f->Get("smdTree");
 
-    uint64_t bunchNum;
+    int bunchNum;
     int bspin, yspin, n_hor_numhits, n_ver_numhits, s_hor_numhits, s_ver_numhits;
     float n_zdc_1, n_zdc_2, n_veto_front, n_veto_back, s_zdc_1, s_zdc_2, s_veto_front, s_veto_back;
     float n_x, n_y, s_x, s_y;
@@ -144,7 +144,7 @@ int process_tree(const char* infilename, const char* outfilename) {
     }
     std::cout << "]" << std::endl;
 
-    if (end > 100) end = 100;
+    /* if (end > 100) end = 100; */
     for (int i=begin; i<end; i++) {
 	if (i%1000000 == 0) std::cout << "Event " << i << std::endl;
 	int gl1bytes = smdTree->GetEntry(i+gl1offset);
@@ -152,7 +152,7 @@ int process_tree(const char* infilename, const char* outfilename) {
 	int ySpin = yspin;
 	int bSpin2 = spinPatternBlue[bunchNum];
 	int ySpin2 = spinPatternYellow[bunchNum];
-	if (true) {
+	if (false) {
 	    std::cout << "i= " << i << ", GL1 bytes = " << gl1bytes << std::endl;
 	    std::cout << "Bunch number = " << bunchNum << std::endl;
 	    std::cout << "From tree: bSpin=" << bSpin << ", ySpin=" << ySpin << std::endl;
@@ -162,10 +162,12 @@ int process_tree(const char* infilename, const char* outfilename) {
 	smdTree->GetEntry(i);
 
 	if (n_neutron) {
+	    // -1*n_x because SMD x runs from left to right
+	    // now phi=0 is to the left of the proton-going direction
+	    n_x = -1.0*n_x;
 	    smd_hor_north->Fill(n_y);
 	    smd_ver_north->Fill(n_x);
-	    float n_phi = atan2(n_y, -1.0*n_x); // -1*n_x because SMD x runs from left to right
-	    // now phi=0 is to the left of the proton-going direction
+	    float n_phi = atan2(n_y, -1.0*n_x); 
 	    smd_north_phi->Fill(n_phi);
 	    // forwards
 	    if (bSpin == 1) {
@@ -196,9 +198,12 @@ int process_tree(const char* infilename, const char* outfilename) {
 	}
 
 	if (s_neutron) {
+	    // same as north, need to switch sign of x
+	    // so that +x axis --> phi=0 --> left of beam-going direction
+	    s_x = -1.0*s_x;
 	    smd_hor_south->Fill(s_y);
 	    smd_ver_south->Fill(s_x);
-	    float s_phi = atan2(s_y, s_x); // no need to invert x direction for south
+	    float s_phi = atan2(s_y, -1.0*s_x); 
 	    smd_south_phi->Fill(s_phi);
 	    // forwards
 	    if (ySpin == 1) {

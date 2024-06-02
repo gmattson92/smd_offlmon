@@ -301,7 +301,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
   {
     bunchNum = gl1->getBunchNumber();
     bunchNum = (bunchNum + crossingShift)%NBUNCHES;
-    std::cout << "Got bunch number = " << bunchNum << std::endl;
+    /* std::cout << "Got bunch number = " << bunchNum << std::endl; */
     gl1evtseq = gl1->getEvtSequence();
     gl1bco_old = gl1bco_new;
     gl1bco_new = gl1->getBCO();
@@ -340,7 +340,7 @@ int SmdHistGen::process_event(PHCompositeNode *topNode)
   n_neutron = NeutronSelection("north");
   s_neutron = NeutronSelection("south");
 
-  std::cout << "Filling tree with bunchNum=" << bunchNum << std::endl;
+  /* std::cout << "Filling tree with bunchNum=" << bunchNum << std::endl; */
   smdTree->Fill();
   return Fun4AllReturnCodes::EVENT_OK;
 }
